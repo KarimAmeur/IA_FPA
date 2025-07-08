@@ -1,3 +1,20 @@
+
+# TOP du fichier (avant les imports)
+import subprocess
+import sys
+
+REQUIRED = [
+    "langchain==0.0.340",
+    "mistralai==0.4.0",
+    "chromadb==0.4.15"
+]
+
+for lib in REQUIRED:
+    try:
+        __import__(lib.split('==')[0])
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", lib])
+        
 import streamlit as st
 import os
 import zipfile
