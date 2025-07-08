@@ -1,39 +1,29 @@
-# Core Streamlit et LangChain (versions compatibles Python 3.13.5)
-streamlit>=1.35.0
-langchain>=0.3.0
-langchain-core>=0.3.0
-langchain-community>=0.3.0
-
-# NOUVEAU: Package requis pour HuggingFaceEmbeddings
-langchain-huggingface>=0.1.0
-
-# Providers spécifiques
-langchain-mistralai>=0.2.0
-mistralai>=1.0.0
-
-# NOUVEAU: Package requis pour ChromaDB/Chroma (version compatible Python 3.13)
-langchain-chroma>=0.2.0
-
-# Python 3.13.5 compatibility (CRITIQUE)
-numpy>=2.1.0
-
-# Embeddings et NLP
-sentence-transformers>=2.4.0
-spacy>=3.7.2
-scikit-learn>=1.3.2
-
-# Core packages
+# Core
+streamlit>=1.32.0
+numpy>=1.24.0,<2.0.0
 pandas>=2.0.0
 requests>=2.31.0
 
-# PyTorch CPU (versions corrigées)
+# LangChain
+langchain==0.1.0
+langchain-community==0.0.13
+langchain-huggingface>=0.0.1
+
+# Mistral
+langchain-mistralai>=0.1.0
+mistralai>=0.4.0
+
+# Embeddings
+sentence-transformers>=2.2.2
+
+# NLP
+spacy>=3.7.2
+scikit-learn>=1.3.2
+
+# PyTorch (version CPU compatible)
 torch>=2.0.0
 torchvision>=0.15.0
 torchaudio>=2.0.0
 
-# Dépendances additionnelles
-pydantic>=2.0.0
-python-dotenv
-
-# spaCy français
+# Modèle français spaCy
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0-py3-none-any.whl
