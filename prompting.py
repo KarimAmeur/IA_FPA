@@ -7,6 +7,8 @@ import spacy
 from typing import List, Dict, Any
 from sklearn.feature_extraction.text import TfidfVectorizer
 from langchain_mistralai import ChatMistralAI
+
+# CORRECTION: Import corrigé pour Chroma
 from langchain_chroma import Chroma
 
 import os

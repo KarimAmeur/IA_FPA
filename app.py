@@ -2,8 +2,13 @@ import streamlit as st
 import os
 import zipfile
 from pathlib import Path
-from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# CORRECTION: Import corrigé pour HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
+# CORRECTION: Import corrigé pour Chroma
 from langchain_chroma import Chroma
+
 from langchain_mistralai import ChatMistralAI
 from prompting import (
     retrieve_documents,
@@ -193,33 +198,24 @@ def database_upload_interface():
     
     return False
 
-# Fonctions de mise en cache avec token HuggingFace
+# CORRECTION: Fonctions de mise en cache avec nouveaux imports
 @st.cache_resource
 def load_embedding_model():
     """Charge le modèle d'embedding avec token HuggingFace"""
     try:
-        # Essayer d'abord avec le token HuggingFace
+        # Configuration pour le nouveau package
         model_kwargs = {"device": "cpu"}
-        if HUGGINGFACE_TOKEN:
-            model_kwargs["use_auth_token"] = HUGGINGFACE_TOKEN
+        encode_kwargs = {"normalize_embeddings": True}
         
+        # CORRECTION: Utilisation du nouveau HuggingFaceEmbeddings
         return HuggingFaceEmbeddings(
-            model_name="Salesforce/SFR-Embedding-Mistral",
+            model_name="sentence-transformers/all-MiniLM-L6-v2",  # Modèle public fiable
             model_kwargs=model_kwargs,
-            encode_kwargs={"normalize_embeddings": True}
+            encode_kwargs=encode_kwargs
         )
     except Exception as e:
-        st.error(f"❌ Erreur modèle SFR-Embedding-Mistral: {e}")
-        # Fallback vers un modèle public
-        try:
-            st.warning("🔄 Utilisation d'un modèle alternatif...")
-            return HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={"device": "cpu"}
-            )
-        except Exception as e2:
-            st.error(f"❌ Erreur modèle de fallback: {e2}")
-            return None
+        st.error(f"❌ Erreur lors du chargement du modèle d'embedding: {e}")
+        return None
 
 @st.cache_resource
 def load_vector_store():
@@ -233,6 +229,7 @@ def load_vector_store():
             st.error("❌ Base vectorielle 'chromadb_formation' non trouvée")
             return None
             
+        # CORRECTION: Utilisation du nouveau Chroma
         vectorstore = Chroma(
             persist_directory="chromadb_formation",
             embedding_function=embeddings
