@@ -20,11 +20,10 @@ numpy>=1.24.0,<2.0.0
 pandas>=2.0.0
 requests>=2.31.0
 
-# PyTorch CPU SEULEMENT (sans CUDA)
-torch>=2.0.0+cpu
-torchvision>=0.15.0+cpu
-torchaudio>=2.0.0+cpu
---find-links https://download.pytorch.org/whl/torch_stable.html
+# PyTorch CPU SEULEMENT (sans CUDA) - Fixed for Streamlit Cloud
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
 
 # spaCy français
 https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0-py3-none-any.whl
