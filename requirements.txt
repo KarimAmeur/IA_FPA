@@ -1,14 +1,15 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 --no-cache-dir
-
-# Core (léger)
+pip==25.1.1  # Force la version la plus récente
+# CORE (obligatoire)
 streamlit==1.32.0
 numpy==1.24.0
+pandas==2.0.0
 
-# NLP optimisé
-spacy==3.7.2
-https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0-py3-none-any.whl
+# NLP (version light)
+spacy==3.7.2 ; python_version < '3.11'
+sentence-transformers==2.2.2
 
-# Deep Learning
+# PyTorch (CPU only)
 torch==2.0.0
-sentence-transformers==2.2.2 --no-deps
+torchvision==0.15.1
