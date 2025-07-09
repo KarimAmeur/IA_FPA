@@ -13,7 +13,7 @@ import zipfile
 from pathlib import Path
 
 # CORRECTION: Import corrigé pour HuggingFaceEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # CORRECTION: Import corrigé pour Chroma
 from langchain_chroma import Chroma

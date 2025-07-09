@@ -5,12 +5,12 @@ import time
 import logging
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 import pandas as pd
 import PyPDF2
 import docx
 import torch
-from main import get_embedding_model
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 # Import pour PowerPoint
 try:
