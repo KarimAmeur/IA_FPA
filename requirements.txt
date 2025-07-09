@@ -7,7 +7,7 @@ langchain-community
 langchain-mistralai
 
 # ChromaDB
-chromadb==0.4.15
+chromadb==0.3.29
 pysqlite3-binary
 
 # ML/AI
