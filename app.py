@@ -10,9 +10,13 @@ except ImportError:
 import streamlit as st
 import os
 import zipfile
+import shutil
 from pathlib import Path
 
-from langchain_community.embeddings import HuggingFaceEmbeddings  
+# CORRECTION: Import corrigé pour HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# CORRECTION: Import corrigé pour Chroma
 from langchain_community.vectorstores import Chroma
 
 from langchain_mistralai import ChatMistralAI
@@ -128,6 +132,25 @@ st.set_page_config(
 
 local_css()
 
+# NOUVELLE FONCTION : Nettoyage automatique ChromaDB
+def clean_corrupted_chromadb(db_path):
+    """Nettoie automatiquement une base ChromaDB corrompue"""
+    try:
+        st.warning("🔧 Détection d'une base ChromaDB incompatible...")
+        st.info("🗑️ Suppression automatique de l'ancienne base...")
+        
+        # Supprimer le dossier corrompu
+        if os.path.exists(db_path):
+            shutil.rmtree(db_path)
+        
+        st.success("✅ Base corrompue supprimée avec succès !")
+        st.info("📋 Veuillez re-uploader votre fichier chromadb_formation.zip")
+        
+        return True
+    except Exception as e:
+        st.error(f"❌ Erreur lors du nettoyage: {e}")
+        return False
+
 # Fonctions de gestion de la base vectorielle
 @st.cache_resource
 def extract_database_if_needed():
@@ -228,22 +251,44 @@ def load_embedding_model():
 
 @st.cache_resource
 def load_vector_store():
-    """Charge la base vectorielle avec mise en cache"""
+    """Charge la base vectorielle avec mise en cache et gestion d'erreurs"""
     try:
         embeddings = load_embedding_model()
         if embeddings is None:
             return None
             
-        if not os.path.exists("chromadb_formation"):
+        db_path = "chromadb_formation"
+        if not os.path.exists(db_path):
             st.error("❌ Base vectorielle 'chromadb_formation' non trouvée")
             return None
             
-        # CORRECTION: Utilisation du nouveau Chroma
-        vectorstore = Chroma(
-            persist_directory="chromadb_formation",
-            embedding_function=embeddings
-        )
-        return vectorstore
+        # CORRECTION: Utilisation du nouveau Chroma avec gestion d'erreur
+        try:
+            vectorstore = Chroma(
+                persist_directory=db_path,
+                embedding_function=embeddings
+            )
+            # Test de fonctionnement
+            vectorstore.similarity_search("test", k=1)
+            return vectorstore
+            
+        except Exception as chroma_error:
+            error_msg = str(chroma_error).lower()
+            
+            # Détecter l'erreur de colonne manquante
+            if "no such column: collections.topic" in error_msg:
+                st.error("❌ Base ChromaDB incompatible détectée")
+                
+                # Nettoyage automatique
+                if clean_corrupted_chromadb(db_path):
+                    return "needs_reupload"
+                else:
+                    return None
+            else:
+                # Autre erreur ChromaDB
+                st.error(f"❌ Erreur ChromaDB: {chroma_error}")
+                return None
+                
     except Exception as e:
         st.error(f"❌ Erreur lors du chargement de la base vectorielle: {e}")
         return None
@@ -278,6 +323,10 @@ def initialize_system():
         # Charger la base vectorielle
         vectorstore = load_vector_store()
         
+        # Vérifier si on doit re-uploader
+        if vectorstore == "needs_reupload":
+            return None, None, "database_missing"
+        
         # Charger le modèle LLM
         llm = create_mistral_llm()
         
@@ -307,7 +356,7 @@ if st.session_state.initialization_status == "database_missing":
     </div>
     """, unsafe_allow_html=True)
     
-    st.warning("⚠️ Base vectorielle non trouvée")
+    st.warning("⚠️ Base vectorielle non trouvée ou incompatible")
     st.info("📋 Veuillez uploader votre base vectorielle pour commencer à utiliser l'assistant.")
     
     if not database_upload_interface():
