@@ -12,9 +12,7 @@ import os
 import zipfile
 import shutil
 from pathlib import Path
-
-# CORRECTION: Import corrigé pour HuggingFaceEmbeddings
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from typing import List
 
 # CORRECTION: Import corrigé pour Chroma
 from langchain_community.vectorstores import Chroma
@@ -32,6 +30,9 @@ from prompting import (
 # Import de la page RAG Personnel
 from user_rag_page import user_rag_page
 
+# CORRECTION: Import de l'API Mistral pour les embeddings
+from mistralai.client import MistralClient
+
 # Configuration des APIs - Utilise les secrets Streamlit
 try:
     MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
@@ -43,6 +44,37 @@ except:
 # Configurer le token HuggingFace
 if HUGGINGFACE_TOKEN:
     os.environ["HUGGINGFACE_HUB_TOKEN"] = HUGGINGFACE_TOKEN
+
+# NOUVELLE CLASSE: Embeddings Mistral compatible avec LangChain
+class MistralEmbeddings:
+    """
+    Wrapper LangChain pour Mistral Embed (1024 dims).
+    Compatible avec la base vectorielle créée par rag_formation.py
+    """
+    def __init__(self, api_key: str, model: str = "mistral-embed"):
+        self.client = MistralClient(api_key=api_key)
+        self.model = model
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        embeddings = []
+        batch_size = 50
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i+batch_size]
+            try:
+                resp = self.client.embeddings(model=self.model, input=batch)
+                embeddings.extend([d.embedding for d in resp.data])
+            except Exception as e:
+                st.error(f"Erreur embedding lot {i//batch_size+1}: {e}")
+                embeddings.extend([[0.0]*1024 for _ in batch])
+        return embeddings
+
+    def embed_query(self, text: str) -> List[float]:
+        try:
+            resp = self.client.embeddings(model=self.model, input=[text])
+            return resp.data[0].embedding
+        except Exception as e:
+            st.error(f"Erreur embedding requête: {e}")
+            return [0.0]*1024
 
 # Définition des couleurs
 COLORS = {
@@ -230,21 +262,18 @@ def database_upload_interface():
     
     return False
 
-# CORRECTION: Fonctions de mise en cache avec nouveaux imports
+# CORRECTION: Fonction de chargement des embeddings Mistral
 @st.cache_resource
 def load_embedding_model():
-    """Charge le modèle d'embedding avec token HuggingFace"""
+    """Charge le modèle d'embedding Mistral compatible avec la base vectorielle"""
     try:
-        # Configuration pour le nouveau package
-        model_kwargs = {"device": "cpu"}
-        encode_kwargs = {"normalize_embeddings": True}
+        if not MISTRAL_API_KEY:
+            st.error("❌ Clé API Mistral manquante")
+            return None
+            
+        # CORRECTION: Utilisation des embeddings Mistral au lieu de HuggingFace
+        return MistralEmbeddings(api_key=MISTRAL_API_KEY, model="mistral-embed")
         
-        # CORRECTION: Utilisation du nouveau HuggingFaceEmbeddings
-        return HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",  # Modèle public fiable
-            model_kwargs=model_kwargs,
-            encode_kwargs=encode_kwargs
-        )
     except Exception as e:
         st.error(f"❌ Erreur lors du chargement du modèle d'embedding: {e}")
         return None
@@ -278,6 +307,17 @@ def load_vector_store():
             # Détecter l'erreur de colonne manquante
             if "no such column: collections.topic" in error_msg:
                 st.error("❌ Base ChromaDB incompatible détectée")
+                
+                # Nettoyage automatique
+                if clean_corrupted_chromadb(db_path):
+                    return "needs_reupload"
+                else:
+                    return None
+                    
+            # Détecter l'erreur de dimension d'embedding
+            elif "embedding dimension" in error_msg and "does not match" in error_msg:
+                st.error("❌ Incompatibilité de dimensions d'embeddings détectée")
+                st.info("💡 La base vectorielle a été créée avec des embeddings différents")
                 
                 # Nettoyage automatique
                 if clean_corrupted_chromadb(db_path):
