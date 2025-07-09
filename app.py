@@ -1,20 +1,12 @@
+# PATCH POUR STREAMLIT CLOUD - À placer en tout début de app.py
+try:
+    __import__('pysqlite3')
+    import sys
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    # pysqlite3 n'est pas disponible, continuer avec sqlite3 normal
+    pass
 
-# TOP du fichier (avant les imports)
-import subprocess
-import sys
-
-REQUIRED = [
-    "langchain==0.0.340",
-    "mistralai==0.4.0",
-    "chromadb==0.4.15"
-]
-
-for lib in REQUIRED:
-    try:
-        __import__(lib.split('==')[0])
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", lib])
-        
 import streamlit as st
 import os
 import zipfile
@@ -35,6 +27,9 @@ from prompting import (
     reformulate_competencies_apc,
     generate_structured_training_scenario
 )
+
+# Import de la page RAG Personnel
+from user_rag_page import user_rag_page
 
 # Configuration des APIs - Utilise les secrets Streamlit
 try:
@@ -622,11 +617,14 @@ def scenarisation_page():
         </div>
         """, unsafe_allow_html=True)
 
-# Onglets de navigation
-tab1, tab2 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation"])
+# CORRECTION: Onglets de navigation avec 3 onglets
+tab1, tab2, tab3 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation", "📚 RAG Personnel"])
 
 with tab1:
     main_chat_page()
 
 with tab2:
     scenarisation_page()
+
+with tab3:
+    user_rag_page()  # Appel de la fonction pour afficher la page RAG Personnel
