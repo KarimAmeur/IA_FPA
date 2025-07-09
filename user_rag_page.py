@@ -3,14 +3,16 @@ import os
 import tempfile
 import time
 import logging
+from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain_community.vectorstores import Chroma
 import pandas as pd
 import PyPDF2
 import docx
-import torch
-from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# Import pour l'API Mistral
+from mistralai.client import MistralClient
 
 # Import pour PowerPoint
 try:
@@ -25,6 +27,56 @@ except ImportError:
 # Configuration du logging
 logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Configuration des APIs - Utilise les secrets Streamlit
+try:
+    MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
+except:
+    MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
+
+class MistralEmbeddings:
+    """
+    Wrapper LangChain pour Mistral Embed (1024 dims).
+    Compatible avec la base vectorielle créée par rag_formation.py
+    """
+    def __init__(self, api_key: str, model: str = "mistral-embed"):
+        self.client = MistralClient(api_key=api_key)
+        self.model = model
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        embeddings = []
+        batch_size = 50
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i+batch_size]
+            try:
+                resp = self.client.embeddings(model=self.model, input=batch)
+                embeddings.extend([d.embedding for d in resp.data])
+            except Exception as e:
+                st.error(f"Erreur embedding lot {i//batch_size+1}: {e}")
+                embeddings.extend([[0.0]*1024 for _ in batch])
+        return embeddings
+
+    def embed_query(self, text: str) -> List[float]:
+        try:
+            resp = self.client.embeddings(model=self.model, input=[text])
+            return resp.data[0].embedding
+        except Exception as e:
+            st.error(f"Erreur embedding requête: {e}")
+            return [0.0]*1024
+
+@st.cache_resource
+def get_embedding_model():
+    """Charge le modèle d'embedding Mistral compatible avec la base vectorielle"""
+    try:
+        if not MISTRAL_API_KEY:
+            st.error("❌ Clé API Mistral manquante")
+            return None
+            
+        return MistralEmbeddings(api_key=MISTRAL_API_KEY, model="mistral-embed")
+        
+    except Exception as e:
+        st.error(f"❌ Erreur lors du chargement du modèle d'embedding: {e}")
+        return None
 
 def extract_text_from_pdf(file_path: str) -> str:
     """Extraire le texte d'un fichier PDF."""
@@ -110,6 +162,12 @@ def extract_text_from_xlsx(file_path: str) -> str:
 def user_rag_page():
     """Page permettant à l'utilisateur d'ajouter ses propres documents au RAG."""
     
+    # Vérification de la clé API Mistral
+    if not MISTRAL_API_KEY:
+        st.error("❌ Clé API Mistral manquante. Veuillez configurer MISTRAL_API_KEY dans les secrets Streamlit.")
+        st.info("💡 Cette fonctionnalité nécessite une clé API Mistral pour vectoriser vos documents avec le même modèle d'embedding que la base principale.")
+        return
+    
     # Bannière avec logo et titre
     st.markdown("""
     <div class="banner">
@@ -130,6 +188,9 @@ def user_rag_page():
         <div class="scenario-card">
             <h3>🔍 Importation de Documents</h3>
             <p>Téléchargez vos documents pour enrichir la base de connaissances personnalisée.</p>
+            <div class="info-box">
+                ℹ️ Vos documents seront vectorisés avec le même modèle d'embedding Mistral que la base principale pour assurer la compatibilité.
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -141,12 +202,11 @@ def user_rag_page():
             help="Les fichiers seront traités puis ajoutés à votre RAG personnel"
         )
         
-        # Paramètres fixes pour les chunks
-        chunk_size = 256
-        chunk_overlap_percent = 10
-        overlap_chars = int(chunk_size * (chunk_overlap_percent / 100))
+        # Paramètres pour les chunks - alignés avec rag_formation.py
+        chunk_size = 1024  # Même taille que dans rag_formation.py
+        chunk_overlap = 100  # Même chevauchement que dans rag_formation.py
         
-        st.info(f"Les documents seront automatiquement découpés en chunks de {chunk_size} caractères, avec un chevauchement de {overlap_chars} caractères.")
+        st.info(f"Les documents seront automatiquement découpés en chunks de {chunk_size} caractères, avec un chevauchement de {chunk_overlap} caractères (paramètres alignés avec la base principale).")
         
         # Bouton de traitement
         process_button = st.button(
@@ -195,12 +255,17 @@ def user_rag_page():
                             st.warning(f"Aucun texte extrait de {os.path.basename(file_path)}")
                             continue
                         
+                        # Limitation de taille comme dans rag_formation.py
+                        if len(text) > 500_000:
+                            st.warning(f"Tronqué {os.path.basename(file_path)} ({len(text)}→500000)")
+                            text = text[:500_000]
+                        
                         st.write(f"✅ Texte extrait ({len(text)} caractères)")
                         
-                        # Découpage du texte en chunks avec paramètres fixes
+                        # Découpage du texte en chunks avec les mêmes paramètres que rag_formation.py
                         text_splitter = RecursiveCharacterTextSplitter(
                             chunk_size=chunk_size,
-                            chunk_overlap=overlap_chars,
+                            chunk_overlap=chunk_overlap,
                             length_function=len,
                             separators=["\n\n", "\n", ".", "!", "?", ";", ":", " ", ""]
                         )
@@ -208,30 +273,38 @@ def user_rag_page():
                         chunks = text_splitter.split_text(text)
                         st.write(f"🔪 Texte découpé en {len(chunks)} chunks")
                         
-                        # Création des documents Langchain
+                        # Création des documents Langchain avec filtrage comme dans rag_formation.py
                         filename = os.path.basename(file_path)
+                        chunks_added = 0
                         for i, chunk in enumerate(chunks):
-                            if len(chunk.strip()) < 30:  # Éviter les chunks trop courts
+                            if len(chunk.strip()) < 100:  # Même filtrage que rag_formation.py
                                 continue
                             
                             documents.append(Document(
                                 page_content=chunk,
                                 metadata={
-                                    "source": filename,
+                                    "source": file_path,
                                     "filename": filename,
                                     "chunk": i,
                                     "type": file_extension[1:],  # Type sans le point initial
                                     "size": len(chunk)
                                 }
                             ))
+                            chunks_added += 1
+                        
+                        st.write(f"   → {chunks_added} chunks ajoutés (après filtrage)")
                     
                     # Création ou mise à jour de la base vectorielle
                     if documents:
-                        st.write(f"🧠 Vectorisation de {len(documents)} documents...")
+                        st.write(f"🧠 Vectorisation de {len(documents)} documents avec Mistral Embed...")
                         
                         try:
-                            # Récupérer le modèle d'embedding
+                            # Récupérer le modèle d'embedding Mistral
                             embeddings = get_embedding_model()
+                            
+                            if embeddings is None:
+                                status.update(label="Erreur: Modèle d'embedding non disponible", state="error")
+                                return
                             
                             # Déterminer s'il faut créer une nouvelle base ou mettre à jour l'existante
                             if st.session_state.RAG_user is None:
@@ -242,19 +315,22 @@ def user_rag_page():
                                     embedding=embeddings,
                                     persist_directory=persist_directory
                                 )
-                                st.session_state.RAG_user.persist()
                                 st.write(f"🎉 Nouvelle base vectorielle créée avec {len(documents)} documents")
                             else:
                                 # Mise à jour de la base existante
                                 st.session_state.RAG_user.add_documents(documents=documents)
-                                st.session_state.RAG_user.persist()
                                 st.write(f"🔄 Base vectorielle mise à jour avec {len(documents)} nouveaux documents")
                             
                             status.update(label="Traitement terminé avec succès!", state="complete", expanded=False)
                             
                             # Indiquer le nombre total de documents dans la base
-                            total_docs = len(st.session_state.RAG_user.get())
-                            st.success(f"Votre RAG personnel contient maintenant {total_docs} chunks de documents")
+                            try:
+                                collection = st.session_state.RAG_user._collection
+                                total_docs = collection.count()
+                                st.success(f"Votre RAG personnel contient maintenant {total_docs} chunks de documents")
+                            except:
+                                st.success("Vectorisation terminée avec succès!")
+                            
                             st.rerun()
                         except Exception as e:
                             status.update(label=f"Erreur lors de la vectorisation: {str(e)}", state="error")
@@ -298,16 +374,13 @@ def user_rag_page():
                     else:
                         file_types[filetype] = 1
                 
-                # Le reste du code reste similaire...
-            except Exception as e:
-                st.error(f"Erreur lors de la récupération des informations sur le RAG: {str(e)}")
-                
                 st.markdown(f"""
                 <div class="info-box">
                     <p><strong>📊 Statistiques de votre RAG personnel:</strong></p>
                     <ul>
                         <li><strong>Nombre total de chunks:</strong> {total_docs}</li>
                         <li><strong>Nombre de fichiers sources:</strong> {len(sources)}</li>
+                        <li><strong>Modèle d'embedding:</strong> Mistral Embed (1024 dims)</li>
                     </ul>
                 </div>
                 """, unsafe_allow_html=True)
@@ -347,29 +420,32 @@ def user_rag_page():
                 if st.button("🔎 Rechercher", use_container_width=True) and test_query:
                     # Effectuer la recherche
                     with st.spinner("Recherche en cours..."):
-                        # Effectuer la recherche similaire
-                        results = st.session_state.RAG_user.similarity_search_with_score(
-                        query=test_query,
-                        k=3  # Nombre de résultats à afficher
-                        )
-                        
-                        if results:
-                            st.markdown("<p><strong>📑 Résultats de la recherche:</strong></p>", unsafe_allow_html=True)
-                            for i, (doc, score) in enumerate(results, 1):
-                                file_type = doc.metadata.get('type', 'inconnu')
-                                file_emoji = {
-                                    'pdf': '📄', 
-                                    'docx': '📝', 
-                                    'pptx': '📊',
-                                    'ppt': '📊',
-                                    'xlsx': '📈',
-                                    'xls': '📈'
-                                }.get(file_type, '📁')
-                                
-                                with st.expander(f"{file_emoji} Résultat {i} - Score: {score:.4f} - Source: {doc.metadata.get('filename', 'Inconnu')}"):
-                                    st.markdown(f"**Extrait du document:**\n\n{doc.page_content}")
-                        else:
-                            st.info("Aucun résultat correspondant à votre requête")
+                        try:
+                            # Effectuer la recherche similaire
+                            results = st.session_state.RAG_user.similarity_search_with_score(
+                                query=test_query,
+                                k=3  # Nombre de résultats à afficher
+                            )
+                            
+                            if results:
+                                st.markdown("<p><strong>📑 Résultats de la recherche:</strong></p>", unsafe_allow_html=True)
+                                for i, (doc, score) in enumerate(results, 1):
+                                    file_type = doc.metadata.get('type', 'inconnu')
+                                    file_emoji = {
+                                        'pdf': '📄', 
+                                        'docx': '📝', 
+                                        'pptx': '📊',
+                                        'ppt': '📊',
+                                        'xlsx': '📈',
+                                        'xls': '📈'
+                                    }.get(file_type, '📁')
+                                    
+                                    with st.expander(f"{file_emoji} Résultat {i} - Score: {score:.4f} - Source: {doc.metadata.get('filename', 'Inconnu')}"):
+                                        st.markdown(f"**Extrait du document:**\n\n{doc.page_content}")
+                            else:
+                                st.info("Aucun résultat correspondant à votre requête")
+                        except Exception as e:
+                            st.error(f"Erreur lors de la recherche: {str(e)}")
             except Exception as e:
                 st.error(f"Erreur lors de la récupération des informations sur le RAG: {str(e)}")
         else:
@@ -383,16 +459,34 @@ def user_rag_page():
                     <li>Cliquez sur "Traiter et vectoriser les documents"</li>
                     <li>Une fois vos documents vectorisés, vous pourrez tester la recherche</li>
                 </ol>
-                <p>Vos documents seront stockés uniquement dans votre session Streamlit actuelle et ne seront pas conservés après la fermeture de l'application.</p>
+                <p><strong>🔧 Compatibilité:</strong> Vos documents seront vectorisés avec le même modèle Mistral Embed (1024 dimensions) que la base principale, garantissant une compatibilité parfaite.</p>
+                <p><strong>💾 Stockage:</strong> Vos documents sont stockés uniquement dans votre session Streamlit actuelle et ne seront pas conservés après la fermeture de l'application.</p>
             </div>
             """, unsafe_allow_html=True)
         
         # Ajouter un bouton pour effacer le RAG personnel
         if st.session_state.RAG_user is not None:
+            st.markdown("""
+            <div class="scenario-card" style="margin-top: 20px;">
+                <h3>🗑️ Gestion du RAG personnel</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            
             if st.button("🗑️ Effacer mon RAG personnel", type="secondary", use_container_width=True):
-                # Confirmation
+                # Demander confirmation
+                st.warning("⚠️ Cette action supprimera définitivement tous vos documents vectorisés.")
                 confirm = st.checkbox("Confirmer la suppression de tous mes documents")
-                if confirm:
-                    st.session_state.RAG_user = None
-                    st.success("Votre RAG personnel a été effacé")
-                    st.experimental_rerun()
+                
+                if confirm and st.button("✅ Confirmer la suppression", type="secondary"):
+                    try:
+                        # Supprimer le dossier de persistance s'il existe
+                        import shutil
+                        if os.path.exists("chroma_db_user"):
+                            shutil.rmtree("chroma_db_user")
+                        
+                        # Réinitialiser la session
+                        st.session_state.RAG_user = None
+                        st.success("Votre RAG personnel a été effacé avec succès!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erreur lors de la suppression: {str(e)}")
