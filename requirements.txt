@@ -6,12 +6,13 @@ langchain
 langchain-community  
 langchain-mistralai
 
-# ChromaDB
-chromadb==0.3.29
+# ChromaDB - Version récente compatible avec mistralai
+chromadb==0.4.15
 pysqlite3-binary
 
 # ML/AI
 sentence-transformers
+scikit-learn
 
 # APIs
 mistralai==0.4.0
