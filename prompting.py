@@ -3,13 +3,13 @@ import traceback
 import csv
 from io import StringIO
 import numpy as np
-import spacy
+# import spacy  # SUPPRIMÉ pour Streamlit Cloud
 from typing import List, Dict, Any
 from sklearn.feature_extraction.text import TfidfVectorizer
 from langchain_mistralai import ChatMistralAI
 
 # CORRECTION: Import corrigé pour Chroma
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import Chroma
 
 import os
 try:
@@ -34,74 +34,41 @@ logging.basicConfig(
 )
 
 def extract_query_essence(query: str) -> str:
-    """Extrait l'essence d'une requête en optimisant pour la performance."""
+    """Version simplifiée SANS spacy - Compatible Streamlit Cloud"""
     try:
-        try:
-            nlp = spacy.load("fr_core_news_sm")
-        except:
-            nlp = spacy.load("fr_core_news_md")
+        # Mots vides français simples (sans spacy)
+        stop_words = {
+            'le', 'de', 'et', 'à', 'un', 'il', 'être', 'et', 'en', 'avoir', 'que', 'pour',
+            'dans', 'ce', 'son', 'une', 'sur', 'avec', 'ne', 'se', 'pas', 'tout', 'plus',
+            'par', 'grand', 'me', 'même', 'te', 'si', 'la', 'du', 'des', 'les', 'au', 'aux',
+            'donne', 'moi', 'explique', 'dis', 'trouve', 'comment', 'quoi', 'où', 'quand',
+            'pourquoi', 'pourrais', 'peux', 'voudrais', 'veux', 'cherche', 'montre'
+        }
         
-        doc = nlp(query)
+        # Nettoyage simple du texte
+        words = query.lower().split()
         
-        common_requests = [
-            "donne moi des informations sur",
-            "explique moi ce qu'est",
-            "je voudrais savoir",
-            "pourrais-tu me dire",
-            "trouve moi",
-            "quelles sont les",
-            "comment fonctionne",
-            "je cherche",
-            "montre moi"
+        # Filtrer les mots vides et garder les mots importants
+        filtered_words = [
+            word.strip('.,?!:;') 
+            for word in words 
+            if len(word) > 2 and word.lower() not in stop_words
         ]
         
-        corpus = common_requests + [query]
-        
-        vectorizer = TfidfVectorizer(
-            stop_words='french',
-            ngram_range=(1, 2)
-        )
-        
-        tfidf_matrix = vectorizer.fit_transform(corpus)
-        feature_names = vectorizer.get_feature_names_out()
-        
-        query_tfidf = tfidf_matrix[-1].toarray()[0]
-        
-        threshold = 0.1
-        important_terms = [
-            feature_names[i] for i in np.where(query_tfidf > threshold)[0]
-        ]
-        
-        entities = [ent.text for ent in doc.ents]
-        noun_chunks = [
-            chunk.text for chunk in doc.noun_chunks
-            if not any(chunk.text.lower() in term.lower() for term in important_terms)
-        ]
-        
-        all_terms = important_terms + entities + noun_chunks
-        
-        unique_terms = []
-        for term in all_terms:
-            term = term.strip()
-            if len(term) > 2 and term not in unique_terms:
-                unique_terms.append(term)
-        
-        if unique_terms:
-            essence = " ".join(unique_terms)
+        # Si on a des mots filtrés, les retourner
+        if filtered_words:
+            essence = " ".join(filtered_words)
         else:
-            keywords = [token.text for token in doc if not token.is_stop and len(token.text) > 2]
-            essence = " ".join(keywords)
+            # Sinon, retourner la requête originale
+            essence = query
         
-        if not essence or len(essence) < 3:
-            return query
-            
         print(f"Requête originale: '{query}'")
         print(f"Essence extraite: '{essence}'")
         
         return essence
         
     except Exception as e:
-        print(f"Erreur lors de l'extraction: {e}")
+        print(f"Erreur lors de l'extraction (version simple): {e}")
         return query
 
 
