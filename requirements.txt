@@ -1,36 +1,28 @@
-# ✅ VERSIONS TESTÉES ET FONCTIONNELLES sur Streamlit Cloud
-# Sources: Medium Snowflake, GitHub streamlit/example-app-langchain-rag
-
-# CORE Streamlit
+# ✅ SOLUTION SANS CONFLIT - Laisse pip résoudre automatiquement
 streamlit==1.32.0
 
-# LangChain - Versions compatibles avec langchain 0.0.340
-langchain==0.0.340
-langchain-community==0.0.29
-langchain-openai==0.0.2
+# LangChain sans versions spécifiques (auto-resolve les conflits)
+langchain
+langchain-community  
+langchain-mistralai
 
-# ChromaDB et intégrations
+# ChromaDB
 chromadb==0.4.15
 pysqlite3-binary
 
-# Embeddings et ML
-sentence-transformers==2.2.2
+# ML/AI
+sentence-transformers
 
 # APIs
 mistralai==0.4.0
 
-# Traitement fichiers (pour user_rag_page)
-PyPDF2==3.0.1
-python-docx==0.8.11
-python-pptx==0.6.21
-openpyxl==3.1.2
+# Traitement fichiers
+PyPDF2
+python-docx
+python-pptx
+openpyxl
 
-# Dépendances automatiques
+# Dépendances de base
 pandas
 numpy
-torch
 requests
-beautifulsoup4
-
-# Alternative recommandée pour HuggingFace (si problème)
-# huggingface_hub>=0.16.0

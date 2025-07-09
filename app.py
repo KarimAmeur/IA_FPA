@@ -12,11 +12,8 @@ import os
 import zipfile
 from pathlib import Path
 
-# CORRECTION: Import corrigé pour HuggingFaceEmbeddings
-from langchain_community.embeddings import HuggingFaceEmbeddings
-
-# CORRECTION: Import corrigé pour Chroma
-from langchain_chroma import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings  
+from langchain_community.vectorstores import Chroma
 
 from langchain_mistralai import ChatMistralAI
 from prompting import (
