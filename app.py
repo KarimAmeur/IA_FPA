@@ -333,6 +333,7 @@ def load_vector_store():
         st.error(f"❌ Erreur lors du chargement de la base vectorielle: {e}")
         return None
 
+
 @st.cache_resource
 def create_mistral_llm():
     """Crée l'instance Mistral avec mise en cache"""
@@ -713,19 +714,4 @@ with tab2:
     scenarisation_page()
 
 with tab3:
-    user_rag_page()  # Appel de la fonction pour afficher la page RAG Personneldef create_mistral_llm():
-    """Crée l'instance Mistral avec mise en cache"""
-    try:
-        if not MISTRAL_API_KEY:
-            st.error("❌ Clé API Mistral manquante")
-            return None
-            
-        return ChatMistralAI(
-            mistral_api_key=MISTRAL_API_KEY,
-            model="open-mistral-7b",  # ← MODÈLE ACCESSIBLE À TOUS LES TIERS
-            temperature=0.1,
-            max_tokens=4000
-        )
-    except Exception as e:
-        st.error(f"❌ Erreur lors de la création du modèle Mistral: {e}")
-        return None
+    user_rag_page()  # Appel de la fonction pour afficher la page RAG Personnel
