@@ -3,6 +3,7 @@ import os
 import tempfile
 import time
 import logging
+import re
 from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
@@ -34,6 +35,42 @@ try:
 except:
     MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
 
+# CORRECTION MOBILE : Fonction de nettoyage sécurisée
+def clean_text_for_mobile(text):
+    """Nettoie le texte pour éviter les erreurs regex sur mobile"""
+    if not text or not isinstance(text, str):
+        return ""
+    
+    try:
+        # Remplacer les caractères problématiques pour mobile
+        text = text.replace('\u00a0', ' ')  # Espace insécable
+        text = text.replace('\u2019', "'")  # Apostrophe courbe
+        text = text.replace('\u201c', '"')  # Guillemet ouvrant
+        text = text.replace('\u201d', '"')  # Guillemet fermant
+        text = text.replace('\u2013', '-')  # Tiret demi-cadratin
+        text = text.replace('\u2014', '-')  # Tiret cadratin
+        
+        # CORRECTION MOBILE : Nettoyer les URLs SANS regex complexe
+        if 'http' in text:
+            words = text.split()
+            cleaned_words = []
+            for word in words:
+                if word.startswith(('http://', 'https://', 'www.')):
+                    cleaned_words.append('[LIEN]')
+                else:
+                    cleaned_words.append(word)
+            text = ' '.join(cleaned_words)
+        
+        # CORRECTION MOBILE : Nettoyer les caractères de contrôle SANS regex complexe
+        control_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f'
+        for char in control_chars:
+            text = text.replace(char, '')
+        
+        return text
+    except Exception:
+        # En cas d'erreur, retourner le texte original sans modification
+        return str(text)
+
 class MistralEmbeddings:
     """
     Wrapper LangChain pour Mistral Embed (1024 dims).
@@ -49,7 +86,9 @@ class MistralEmbeddings:
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i+batch_size]
             try:
-                resp = self.client.embeddings(model=self.model, input=batch)
+                # CORRECTION MOBILE : Nettoyer les textes avant embedding
+                clean_batch = [clean_text_for_mobile(text) for text in batch]
+                resp = self.client.embeddings(model=self.model, input=clean_batch)
                 embeddings.extend([d.embedding for d in resp.data])
             except Exception as e:
                 st.error(f"Erreur embedding lot {i//batch_size+1}: {e}")
@@ -58,7 +97,9 @@ class MistralEmbeddings:
 
     def embed_query(self, text: str) -> List[float]:
         try:
-            resp = self.client.embeddings(model=self.model, input=[text])
+            # CORRECTION MOBILE : Nettoyer la requête avant embedding
+            clean_text = clean_text_for_mobile(text)
+            resp = self.client.embeddings(model=self.model, input=[clean_text])
             return resp.data[0].embedding
         except Exception as e:
             st.error(f"Erreur embedding requête: {e}")
@@ -79,7 +120,7 @@ def get_embedding_model():
         return None
 
 def extract_text_from_pdf(file_path: str) -> str:
-    """Extraire le texte d'un fichier PDF."""
+    """Extraire le texte d'un fichier PDF - VERSION MOBILE SAFE"""
     try:
         with open(file_path, 'rb') as file:
             reader = PyPDF2.PdfReader(file)
@@ -87,23 +128,31 @@ def extract_text_from_pdf(file_path: str) -> str:
             for page in reader.pages:
                 text = page.extract_text()
                 if text:
-                    full_text += text + "\n\n"
+                    # CORRECTION MOBILE : Nettoyer le texte extrait
+                    clean_text = clean_text_for_mobile(text)
+                    full_text += clean_text + "\n\n"
             return full_text
     except Exception as e:
         logging.error(f"Erreur lors de l'extraction du PDF {file_path}: {e}")
         return ""
 
 def extract_text_from_docx(file_path: str) -> str:
-    """Extraire le texte d'un fichier Word."""
+    """Extraire le texte d'un fichier Word - VERSION MOBILE SAFE"""
     try:
         doc = docx.Document(file_path)
-        return "\n".join([paragraph.text for paragraph in doc.paragraphs if paragraph.text])
+        texts = []
+        for paragraph in doc.paragraphs:
+            if paragraph.text:
+                # CORRECTION MOBILE : Nettoyer chaque paragraphe
+                clean_para = clean_text_for_mobile(paragraph.text)
+                texts.append(clean_para)
+        return "\n".join(texts)
     except Exception as e:
         logging.error(f"Erreur lors de l'extraction du DOCX {file_path}: {e}")
         return ""
 
 def extract_text_from_pptx(file_path: str) -> str:
-    """Extraire le texte d'un fichier PowerPoint."""
+    """Extraire le texte d'un fichier PowerPoint - VERSION MOBILE SAFE"""
     try:
         prs = Presentation(file_path)
         full_text = ""
@@ -116,14 +165,22 @@ def extract_text_from_pptx(file_path: str) -> str:
             if slide.shapes.title and slide.shapes.title.has_text_frame:
                 title_text = slide.shapes.title.text
                 if title_text.strip():
-                    slide_text.append(f"Titre: {title_text}")
+                    # CORRECTION MOBILE : Nettoyer le titre
+                    clean_title = clean_text_for_mobile(title_text)
+                    slide_text.append(f"Titre: {clean_title}")
             
             # Extraire le texte de toutes les formes
             for shape in slide.shapes:
+                text_content = ""
                 if hasattr(shape, "text") and shape.text.strip():
-                    slide_text.append(shape.text)
+                    text_content = shape.text
                 elif hasattr(shape, "text_frame") and shape.text_frame.text.strip():
-                    slide_text.append(shape.text_frame.text)
+                    text_content = shape.text_frame.text
+                
+                if text_content:
+                    # CORRECTION MOBILE : Nettoyer le texte de la forme
+                    clean_content = clean_text_for_mobile(text_content)
+                    slide_text.append(clean_content)
             
             # Ajouter le texte de la diapositive au texte global
             if slide_text:
@@ -136,7 +193,7 @@ def extract_text_from_pptx(file_path: str) -> str:
         return ""
 
 def extract_text_from_xlsx(file_path: str) -> str:
-    """Extraire le texte d'un fichier Excel."""
+    """Extraire le texte d'un fichier Excel - VERSION MOBILE SAFE"""
     try:
         # Lire tous les onglets
         xls = pd.ExcelFile(file_path)
@@ -147,11 +204,15 @@ def extract_text_from_xlsx(file_path: str) -> str:
             df = pd.read_excel(file_path, sheet_name=sheet_name)
 
             # Convertir toutes les colonnes en chaîne et concaténer
-            sheet_text = "\n".join([
-                " ".join(str(val) for val in row if pd.notna(val))
-                for row in df.values
-            ])
+            sheet_texts = []
+            for row in df.values:
+                row_text = " ".join(str(val) for val in row if pd.notna(val))
+                if row_text.strip():
+                    # CORRECTION MOBILE : Nettoyer chaque ligne
+                    clean_row = clean_text_for_mobile(row_text)
+                    sheet_texts.append(clean_row)
 
+            sheet_text = "\n".join(sheet_texts)
             full_text += f"Feuille {sheet_name}:\n{sheet_text}\n\n"
 
         return full_text
@@ -160,7 +221,7 @@ def extract_text_from_xlsx(file_path: str) -> str:
         return ""
 
 def user_rag_page():
-    """Page permettant à l'utilisateur d'ajouter ses propres documents au RAG."""
+    """Page permettant à l'utilisateur d'ajouter ses propres documents au RAG - VERSION MOBILE SAFE"""
     
     # Vérification de la clé API Mistral
     if not MISTRAL_API_KEY:
@@ -168,11 +229,11 @@ def user_rag_page():
         st.info("💡 Cette fonctionnalité nécessite une clé API Mistral pour vectoriser vos documents avec le même modèle d'embedding que la base principale.")
         return
     
-    # Bannière avec logo et titre
+    # Bannière avec logo et titre - CHARTE EDSET
     st.markdown("""
     <div class="banner">
-        <h1>📄 Importation de Documents Personnels</h1>
-        <p>Ajoutez vos propres documents pour enrichir la base de connaissances de l'assistant</p>
+        <h1>📄 edset.</h1>
+        <p>importation de documents personnels</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -255,6 +316,9 @@ def user_rag_page():
                             st.warning(f"Aucun texte extrait de {os.path.basename(file_path)}")
                             continue
                         
+                        # CORRECTION MOBILE : Nettoyer le texte extrait
+                        text = clean_text_for_mobile(text)
+                        
                         # Limitation de taille comme dans rag_formation.py
                         if len(text) > 500_000:
                             st.warning(f"Tronqué {os.path.basename(file_path)} ({len(text)}→500000)")
@@ -280,14 +344,17 @@ def user_rag_page():
                             if len(chunk.strip()) < 100:  # Même filtrage que rag_formation.py
                                 continue
                             
+                            # CORRECTION MOBILE : Nettoyer chaque chunk
+                            clean_chunk = clean_text_for_mobile(chunk)
+                            
                             documents.append(Document(
-                                page_content=chunk,
+                                page_content=clean_chunk,
                                 metadata={
                                     "source": file_path,
                                     "filename": filename,
                                     "chunk": i,
                                     "type": file_extension[1:],  # Type sans le point initial
-                                    "size": len(chunk)
+                                    "size": len(clean_chunk)
                                 }
                             ))
                             chunks_added += 1
@@ -421,9 +488,12 @@ def user_rag_page():
                     # Effectuer la recherche
                     with st.spinner("Recherche en cours..."):
                         try:
+                            # CORRECTION MOBILE : Nettoyer la requête de test
+                            clean_query = clean_text_for_mobile(test_query)
+                            
                             # Effectuer la recherche similaire
                             results = st.session_state.RAG_user.similarity_search_with_score(
-                                query=test_query,
+                                query=clean_query,
                                 k=3  # Nombre de résultats à afficher
                             )
                             
@@ -440,8 +510,12 @@ def user_rag_page():
                                         'xls': '📈'
                                     }.get(file_type, '📁')
                                     
-                                    with st.expander(f"{file_emoji} Résultat {i} - Score: {score:.4f} - Source: {doc.metadata.get('filename', 'Inconnu')}"):
-                                        st.markdown(f"**Extrait du document:**\n\n{doc.page_content}")
+                                    # CORRECTION MOBILE : Nettoyer le contenu affiché
+                                    clean_content = clean_text_for_mobile(doc.page_content)
+                                    clean_filename = clean_text_for_mobile(doc.metadata.get('filename', 'Inconnu'))
+                                    
+                                    with st.expander(f"{file_emoji} Résultat {i} - Score: {score:.4f} - Source: {clean_filename}"):
+                                        st.markdown(f"**Extrait du document:**\n\n{clean_content}")
                             else:
                                 st.info("Aucun résultat correspondant à votre requête")
                         except Exception as e:

@@ -79,165 +79,306 @@ class MistralEmbeddings:
             st.error(f"Erreur embedding requête: {e}")
             return [0.0]*1024
 
-# Définition des couleurs
+# Définition des couleurs - CHARTE GRAPHIQUE EDSET
 COLORS = {
-    "primary": "#1D5B68",
-    "secondary": "#E6525E", 
-    "light_blue": "#94B7BD",
-    "very_light_blue": "#DDE7E9",
-    "dark_gray": "#3F3F3F",
-    "light_gray": "#F5F5F6",
-    "background": "#1A1A1A",
-    "text": "#FFFFFF"
+    "primary": "#1D5B68",        # Bleu principal Edset
+    "secondary": "#E6525E",      # Rouge accent Edset  
+    "light_blue": "#94B7BD",     # Bleu ciel Edset
+    "very_light_blue": "#DDE7E9", # Bleu très clair Edset
+    "dark_gray": "#3F3F3F",      # Gris foncé Edset
+    "light_gray": "#F5F5F6",     # Gris clair Edset
+    "background": "#FFFFFF",     # Fond blanc (charte Edset)
+    "text": "#3F3F3F"            # Texte gris foncé (charte Edset)
 }
 
-# Configuration CSS personnalisée
+# Configuration CSS personnalisée - CHARTE GRAPHIQUE EDSET
 def local_css():
     st.markdown(f"""
     <style>
+        /* TYPOGRAPHIE EDSET : Omnes + Roboto */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap');
+        
         .stApp {{
             background-color: {COLORS["background"]};
             color: {COLORS["text"]};
+            font-family: 'Roboto', sans-serif;
         }}
         
+        /* TITRES : Roboto Medium (selon charte Edset) */
         h1, h2, h3 {{
-            color: {COLORS["light_blue"]};
-            font-family: 'Helvetica Neue', sans-serif;
+            color: {COLORS["primary"]};
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            line-height: 1.2;
         }}
         
+        h1 {{
+            font-size: 2.5rem;
+            font-weight: 600;
+        }}
+        
+        h2 {{
+            font-size: 2rem;
+            font-weight: 500;
+        }}
+        
+        h3 {{
+            font-size: 1.5rem;
+            font-weight: 500;
+        }}
+        
+        /* INPUTS : Style Edset */
         .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
-            background-color: {COLORS["dark_gray"]};
+            background-color: {COLORS["background"]};
             color: {COLORS["text"]};
-            border: 1px solid {COLORS["light_blue"]};
+            border: 2px solid {COLORS["very_light_blue"]};
+            border-radius: 8px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300;
+            transition: border-color 0.3s ease;
+        }}
+        
+        .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {{
+            border-color: {COLORS["primary"]};
+            box-shadow: 0 0 0 2px {COLORS["light_blue"]}40;
         }}
         
         .stSelectbox>div>div>div {{
-            background-color: {COLORS["dark_gray"]};
+            background-color: {COLORS["background"]};
             color: {COLORS["text"]};
-            border-radius: 6px;
-            border: 1px solid {COLORS["light_blue"]};
+            border: 2px solid {COLORS["very_light_blue"]};
+            border-radius: 8px;
+            font-family: 'Roboto', sans-serif;
         }}
         
+        /* BOUTONS : Style Edset moderne */
         .stButton>button {{
-            background-color: {COLORS["primary"]};
-            color: {COLORS["text"]};
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
+            color: white;
             border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-family: 'Roboto', sans-serif;
             font-weight: 500;
-            transition: all 0.3s;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(29, 91, 104, 0.2);
         }}
         
         .stButton>button:hover {{
-            background-color: {COLORS["light_blue"]};
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(29, 91, 104, 0.3);
+            background: linear-gradient(135deg, {COLORS["light_blue"]} 0%, {COLORS["primary"]} 100%);
         }}
         
+        /* SIDEBAR : Style Edset */
         [data-testid="stSidebar"] {{
-            background-color: {COLORS["dark_gray"]};
-            color: {COLORS["text"]};
+            background: linear-gradient(180deg, {COLORS["very_light_blue"]} 0%, {COLORS["light_gray"]} 100%);
+            border-right: 1px solid {COLORS["very_light_blue"]};
         }}
         
+        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {{
+            color: {COLORS["primary"]};
+        }}
+        
+        /* CARDS : Style Edset moderne */
         .scenario-card, .user-message, .assistant-message {{
-            background-color: {COLORS["dark_gray"]};
+            background: {COLORS["background"]};
             color: {COLORS["text"]};
-            padding: 15px;
-            border-radius: 10px;
+            padding: 20px;
+            border-radius: 15px;
             border-left: 5px solid {COLORS["secondary"]};
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300;
+            line-height: 1.6;
+        }}
+        
+        .user-message {{
+            border-left-color: {COLORS["primary"]};
+            background: linear-gradient(135deg, {COLORS["very_light_blue"]}20 0%, {COLORS["background"]} 100%);
+        }}
+        
+        .assistant-message {{
+            border-left-color: {COLORS["secondary"]};
+            background: linear-gradient(135deg, {COLORS["light_gray"]}40 0%, {COLORS["background"]} 100%);
         }}
         
         .upload-box {{
-            background-color: {COLORS["dark_gray"]};
+            background: linear-gradient(135deg, {COLORS["very_light_blue"]}30 0%, {COLORS["background"]} 100%);
             border: 2px dashed {COLORS["light_blue"]};
-            border-radius: 10px;
+            border-radius: 15px;
             padding: 30px;
             text-align: center;
             margin: 20px 0;
+            transition: all 0.3s ease;
         }}
         
+        .upload-box:hover {{
+            border-color: {COLORS["primary"]};
+            background: linear-gradient(135deg, {COLORS["very_light_blue"]}50 0%, {COLORS["background"]} 100%);
+        }}
+        
+        /* AUTH CONTAINER : Style Edset */
         .auth-container {{
             max-width: 500px;
             margin: 50px auto;
             padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
             border-radius: 20px;
             text-align: center;
             color: white;
+            box-shadow: 0 10px 30px rgba(29, 91, 104, 0.3);
         }}
         
         .user-info {{
-            background-color: {COLORS["primary"]};
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
             color: white;
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 25px;
-            margin: 10px 0;
+            margin: 15px 0;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
         }}
         
         .guide-section {{
-            background-color: {COLORS["dark_gray"]};
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 4px solid {COLORS["light_blue"]};
+            background: {COLORS["background"]};
+            color: {COLORS["text"]};
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid {COLORS["primary"]};
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300;
         }}
         
         .column-selector {{
-            background-color: {COLORS["dark_gray"]};
-            padding: 10px;
-            border-radius: 8px;
-            margin: 5px 0;
+            background: {COLORS["very_light_blue"]}30;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 8px 0;
+            border: 1px solid {COLORS["very_light_blue"]};
         }}
         
+        /* BANNER : Style Edset moderne */
         .banner {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 50%, {COLORS["secondary"]} 100%);
             color: white;
-            padding: 2rem;
-            border-radius: 10px;
+            padding: 3rem 2rem;
+            border-radius: 20px;
             text-align: center;
             margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(29, 91, 104, 0.2);
+            position: relative;
+            overflow: hidden;
         }}
         
+        .banner::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" stroke-opacity="0.1" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            pointer-events: none;
+        }}
+        
+        .banner h1 {{
+            color: white;
+            font-size: 2.8rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1;
+        }}
+        
+        .banner p {{
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 0;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }}
+        
+        /* LOGO : Style Edset */
         .logo {{
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 1.4rem;
+            margin: 0 auto 15px auto;
+            box-shadow: 0 4px 15px rgba(29, 91, 104, 0.3);
+            font-family: 'Roboto', sans-serif;
         }}
         
+        /* INFO BOX : Style Edset */
         .info-box {{
-            background: {COLORS["very_light_blue"]};
-            color: {COLORS["dark_gray"]};
+            background: linear-gradient(135deg, {COLORS["very_light_blue"]}60 0%, {COLORS["light_gray"]}40 100%);
+            color: {COLORS["text"]};
             border-left: 4px solid {COLORS["primary"]};
-            padding: 1rem;
-            border-radius: 4px;
-            margin: 1rem 0;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }}
         
+        /* BADGE : Style Edset */
         .badge {{
             display: inline-block;
-            padding: 0.25em 0.6em;
-            font-size: 0.75em;
-            font-weight: 700;
+            padding: 0.4em 0.8em;
+            font-size: 0.8rem;
+            font-weight: 500;
             line-height: 1;
             text-align: center;
             white-space: nowrap;
             vertical-align: baseline;
-            border-radius: 0.25rem;
+            border-radius: 15px;
+            font-family: 'Roboto', sans-serif;
         }}
         
         .badge-blue {{
-            color: #fff;
-            background-color: {COLORS["primary"]};
+            color: white;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
+            box-shadow: 0 2px 8px rgba(29, 91, 104, 0.2);
         }}
         
-        /* CORRECTION MOBILE UNIQUEMENT - SANS TOUCHER AU RESTE */
+        /* TABS : Style Edset */
+        .stTabs [data-baseweb="tab-list"] {{
+            gap: 8px;
+            background: {COLORS["very_light_blue"]}30;
+            border-radius: 15px;
+            padding: 5px;
+        }}
+        
+        .stTabs [data-baseweb="tab"] {{
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            color: {COLORS["text"]};
+            transition: all 0.3s ease;
+        }}
+        
+        .stTabs [aria-selected="true"] {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(29, 91, 104, 0.2);
+        }}
+        
+        /* CORRECTION MOBILE UNIQUEMENT */
         @media (max-width: 768px) {{
             .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
                 font-size: 16px !important; /* Évite le zoom sur iOS */
@@ -246,15 +387,59 @@ def local_css():
             .scenario-card, .user-message, .assistant-message {{
                 word-wrap: break-word;
                 overflow-wrap: break-word;
+                padding: 15px;
             }}
+            
+            .banner {{
+                padding: 2rem 1rem;
+                border-radius: 15px;
+            }}
+            
+            .banner h1 {{
+                font-size: 2rem;
+            }}
+            
+            .banner p {{
+                font-size: 1rem;
+            }}
+            
+            .logo {{
+                width: 60px;
+                height: 60px;
+                font-size: 1.2rem;
+            }}
+        }}
+        
+        /* ANIMATIONS ET TRANSITIONS */
+        * {{
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }}
+        
+        /* SCROLLBAR : Style Edset */
+        ::-webkit-scrollbar {{
+            width: 8px;
+        }}
+        
+        ::-webkit-scrollbar-track {{
+            background: {COLORS["light_gray"]};
+            border-radius: 4px;
+        }}
+        
+        ::-webkit-scrollbar-thumb {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
+            border-radius: 4px;
+        }}
+        
+        ::-webkit-scrollbar-thumb:hover {{
+            background: linear-gradient(135deg, {COLORS["light_blue"]} 0%, {COLORS["primary"]} 100%);
         }}
     </style>
     """, unsafe_allow_html=True)
 
-# Configuration de l'application Streamlit
+# Configuration de l'application Streamlit - CHARTE EDSET
 st.set_page_config(
-    page_title="Assistant FPA - Ingénierie de Formation",
-    page_icon="📘",
+    page_title="edset. - écosystème de formation",
+    page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -784,8 +969,8 @@ def initialize_system():
 if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
     st.markdown("""
     <div class="auth-container">
-        <h1>🎓 Assistant FPA</h1>
-        <h2>Ingénierie de Formation</h2>
+        <h1>🎓 edset.</h1>
+        <h2 style="font-style: italic; font-weight: 300; opacity: 0.9;">écosystème de formation</h2>
         <p style="font-size: 1.2rem; margin: 30px 0;">
             Connectez-vous avec votre compte Google pour accéder à votre espace personnel de formation
         </p>
@@ -846,8 +1031,8 @@ if user_id and f'RAG_user_{user_id}' not in st.session_state:
 if st.session_state.initialization_status == "database_missing":
     st.markdown("""
     <div class="banner">
-        <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
-        <p>Configuration initiale requise</p>
+        <h1>🎓 edset.</h1>
+        <p>écosystème de formation - Configuration initiale requise</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -870,8 +1055,8 @@ def main_chat_page():
     
     st.markdown(f"""
     <div class="banner">
-        <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
-        <p>Votre partenaire intelligent pour la conception et l'amélioration de vos formations professionnelles</p>
+        <h1>🎓 edset.</h1>
+        <p>écosystème de formation</p>
         <div class="user-info">
             👤 Connecté en tant que : {st.user.name} ({st.user.email})
         </div>
@@ -959,8 +1144,8 @@ def scenarisation_page():
     
     st.markdown("""
     <div class="banner">
-        <h1>🎯 Scénarisation de Formation</h1>
-        <p>Créez des scénarios pédagogiques adaptés à vos objectifs</p>
+        <h1>🎯 edset.</h1>
+        <p>scénarisation de formation</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1102,8 +1287,9 @@ def scenarisation_page():
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; margin-bottom: 30px;">
-        <div class="logo" style="margin: 0 auto;">FPA</div>
-        <h3>Assistant Formation</h3>
+        <div class="logo">edset</div>
+        <h3 style="color: #1D5B68; margin: 0; font-weight: 500;">Assistant Formation</h3>
+        <p style="color: #94B7BD; font-size: 0.9rem; margin: 5px 0 0 0; font-style: italic;">écosystème de formation</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1162,7 +1348,7 @@ with st.sidebar:
 # ONGLETS DE NAVIGATION PRINCIPAL
 # ==========================================
 
-tab1, tab2, tab3 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
+tab1, tab2, tab3 = st.tabs(["💬 edset. chat", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
 
 with tab1:
     main_chat_page()

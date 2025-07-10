@@ -3,6 +3,7 @@ import traceback
 import csv
 from io import StringIO
 import numpy as np
+import re
 # import spacy  # SUPPRIMÉ pour Streamlit Cloud
 from typing import List, Dict, Any
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -33,9 +34,51 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-def extract_query_essence(query: str) -> str:
-    """Version simplifiée SANS spacy - Compatible Streamlit Cloud"""
+# CORRECTION MOBILE : Fonction de nettoyage sécurisée
+def clean_text_for_mobile(text):
+    """Nettoie le texte pour éviter les erreurs regex sur mobile"""
+    if not text or not isinstance(text, str):
+        return ""
+    
     try:
+        # Remplacer les caractères problématiques pour mobile
+        text = text.replace('\u00a0', ' ')  # Espace insécable
+        text = text.replace('\u2019', "'")  # Apostrophe courbe
+        text = text.replace('\u201c', '"')  # Guillemet ouvrant
+        text = text.replace('\u201d', '"')  # Guillemet fermant
+        text = text.replace('\u2013', '-')  # Tiret demi-cadratin
+        text = text.replace('\u2014', '-')  # Tiret cadratin
+        
+        # CORRECTION MOBILE : Nettoyer les URLs SANS regex complexe
+        # Utiliser une approche simple sans group specifier name
+        if 'http' in text:
+            # Remplacer simplement les URLs par [LIEN]
+            words = text.split()
+            cleaned_words = []
+            for word in words:
+                if word.startswith(('http://', 'https://', 'www.')):
+                    cleaned_words.append('[LIEN]')
+                else:
+                    cleaned_words.append(word)
+            text = ' '.join(cleaned_words)
+        
+        # CORRECTION MOBILE : Nettoyer les caractères de contrôle SANS regex complexe
+        # Remplacer caractère par caractère
+        control_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f'
+        for char in control_chars:
+            text = text.replace(char, '')
+        
+        return text
+    except Exception:
+        # En cas d'erreur, retourner le texte original sans modification
+        return str(text)
+
+def extract_query_essence(query: str) -> str:
+    """Version simplifiée SANS spacy - Compatible Streamlit Cloud ET Mobile"""
+    try:
+        # CORRECTION MOBILE : Nettoyer d'abord le texte
+        query = clean_text_for_mobile(query)
+        
         # Mots vides français simples (sans spacy)
         stop_words = {
             'le', 'de', 'et', 'à', 'un', 'il', 'être', 'et', 'en', 'avoir', 'que', 'pour',
@@ -49,11 +92,12 @@ def extract_query_essence(query: str) -> str:
         words = query.lower().split()
         
         # Filtrer les mots vides et garder les mots importants
-        filtered_words = [
-            word.strip('.,?!:;') 
-            for word in words 
-            if len(word) > 2 and word.lower() not in stop_words
-        ]
+        filtered_words = []
+        for word in words:
+            # CORRECTION MOBILE : Nettoyage simple sans regex
+            clean_word = word.strip('.,?!:;')
+            if len(clean_word) > 2 and clean_word.lower() not in stop_words:
+                filtered_words.append(clean_word)
         
         # Si on a des mots filtrés, les retourner
         if filtered_words:
@@ -78,13 +122,15 @@ def retrieve_documents(
     max_results: int = 5,
     min_content_length: int = 100
 ) -> List[Dict[str, Any]]:
-    """Récupère les documents pertinents pour une requête."""
+    """Récupère les documents pertinents pour une requête - VERSION MOBILE SAFE"""
     if not vectorstore:
         print("Base de données vectorielle non disponible.")
         return []
 
     try:
-        processed_query = extract_query_essence(query)
+        # CORRECTION MOBILE : Nettoyer la requête
+        processed_query = clean_text_for_mobile(query)
+        processed_query = extract_query_essence(processed_query)
         
         results = vectorstore.similarity_search_with_score(
             query=processed_query, 
@@ -101,11 +147,15 @@ def retrieve_documents(
             
         retrieved_docs = []
         for doc, raw_score in filtered_results:
+            # CORRECTION MOBILE : Nettoyer le contenu des documents
+            clean_content = clean_text_for_mobile(doc.page_content)
+            clean_title = clean_text_for_mobile(doc.metadata.get('titre', 'Document sans titre'))
+            
             retrieved_docs.append({
-                'content': doc.page_content,
+                'content': clean_content,
                 'metadata': doc.metadata,
                 'score': raw_score,
-                'title': doc.metadata.get('titre', 'Document sans titre')
+                'title': clean_title
             })
 
         print(f"\n{'='*80}")
@@ -145,9 +195,12 @@ def generate_context_response(
     retrieved_docs: List[Dict[str, Any]],
     conversation_history: List[Dict[str, str]] = None
     ) -> str:
-    """Génère une réponse basée sur les documents récupérés."""
+    """Génère une réponse basée sur les documents récupérés - VERSION MOBILE SAFE"""
     if not retrieved_docs:
         return "Je n'ai pas trouvé de documents pertinents pour répondre à votre question. Pourriez-vous reformuler ou préciser votre demande?"
+    
+    # CORRECTION MOBILE : Nettoyer la requête
+    clean_query = clean_text_for_mobile(query)
     
     context = ""
     
@@ -187,7 +240,9 @@ def generate_context_response(
         history_text = "HISTORIQUE DE LA CONVERSATION:\n"
         for i, msg in enumerate(conversation_history[-5:]):
             role = "Utilisateur" if msg["role"] == "user" else "Assistant"
-            history_text += f"[{i+1}] {role}: {msg['content']}\n\n"
+            # CORRECTION MOBILE : Nettoyer le contenu de l'historique
+            clean_content = clean_text_for_mobile(msg['content'])
+            history_text += f"[{i+1}] {role}: {clean_content}\n\n"
     
     full_prompt = f"""
     Tu es un assistant d'information spécialisé dans la création de réponses détaillées, précises et nuancées.
@@ -197,7 +252,7 @@ def generate_context_response(
     CONTEXTE DES DOCUMENTS RÉCUPÉRÉS:
     {context}
     
-    QUESTION ACTUELLE: "{query}"
+    QUESTION ACTUELLE: "{clean_query}"
     
     CONSIGNES POUR LA GÉNÉRATION DE LA RÉPONSE:
     1. Analyse en profondeur les documents fournis et identifie les informations les plus pertinentes
@@ -216,7 +271,7 @@ def generate_context_response(
     """
     
     try:
-        logging.info(f"Génération de réponse pour la requête: '{query}'")
+        logging.info(f"Génération de réponse pour la requête: '{clean_query}'")
         
         # Appel à l'API Mistral via LangChain
         response = llm.invoke(full_prompt)
@@ -231,6 +286,9 @@ def generate_context_response(
         else:
             result = str(response)
         
+        # CORRECTION MOBILE : Nettoyer la réponse
+        result = clean_text_for_mobile(result)
+        
         logging.info(f"Réponse générée avec succès ({len(result)} caractères)")
         return result
     except Exception as e:
@@ -240,7 +298,7 @@ def generate_context_response(
     
 
 def generate_example_training_plan(llm) -> str:
-    """Génère un exemple de plan de formation."""
+    """Génère un exemple de plan de formation - VERSION MOBILE SAFE"""
     exemple_prompt = """
     Génère un exemple de plan de formation professionnelle détaillé, 
     incluant:
@@ -255,19 +313,22 @@ def generate_example_training_plan(llm) -> str:
     try:
         response = llm.invoke(exemple_prompt)
         if hasattr(response, 'content'):
-            return response.content
+            result = response.content
         elif isinstance(response, dict) and 'content' in response:
-            return response['content']
+            result = response['content']
         elif isinstance(response, str):
-            return response
+            result = response
         else:
-            return str(response)
+            result = str(response)
+        
+        # CORRECTION MOBILE : Nettoyer la réponse
+        return clean_text_for_mobile(result)
     except Exception as e:
         logging.error(f"Erreur lors de la génération du plan de formation: {e}")
         return "Impossible de générer un exemple de plan de formation."
 
 def generate_pedagogical_engineering_advice(llm) -> str:
-    """Génère des conseils d'ingénierie pédagogique."""
+    """Génère des conseils d'ingénierie pédagogique - VERSION MOBILE SAFE"""
     aide_prompt = """
     Donne des conseils professionnels pour construire 
     une démarche d'ingénierie pédagogique efficace, 
@@ -277,13 +338,16 @@ def generate_pedagogical_engineering_advice(llm) -> str:
     try:
         response = llm.invoke(aide_prompt)
         if hasattr(response, 'content'):
-            return response.content
+            result = response.content
         elif isinstance(response, dict) and 'content' in response:
-            return response['content']
+            result = response['content']
         elif isinstance(response, str):
-            return response
+            result = response
         else:
-            return str(response)
+            result = str(response)
+        
+        # CORRECTION MOBILE : Nettoyer la réponse
+        return clean_text_for_mobile(result)
     except Exception as e:
         logging.error(f"Erreur lors de la génération des conseils d'ingénierie: {e}")
         return "Impossible de générer des conseils d'ingénierie pédagogique."
@@ -293,10 +357,14 @@ def reformulate_competencies_apc(
     vectorstore, 
     initial_competencies: str
 ) -> str:
-    """Reformule les compétences selon l'Approche Par Compétences (APC)."""
+    """Reformule les compétences selon l'Approche Par Compétences (APC) - VERSION MOBILE SAFE"""
+    
+    # CORRECTION MOBILE : Nettoyer les compétences initiales
+    clean_competencies = clean_text_for_mobile(initial_competencies)
+    
     retrieved_docs = retrieve_documents(
         vectorstore, 
-        f"Approche Par Compétences TARDIF, reformulation de compétences, {initial_competencies}"
+        f"Approche Par Compétences TARDIF, reformulation de compétences, {clean_competencies}"
     )
     
     context = "\n\n".join([
@@ -309,7 +377,7 @@ def reformulate_competencies_apc(
     {context}
     
     Compétences initiales:
-    {initial_competencies}
+    {clean_competencies}
     
     Instructions pour la reformulation selon l'Approche Par Compétences (APC) de TARDIF:
     1. Transformer les compétences en énoncés précis et observables
@@ -328,19 +396,25 @@ def reformulate_competencies_apc(
     try:
         response = llm.invoke(reformulation_prompt)
         if hasattr(response, 'content'):
-            return response.content
+            result = response.content
         elif isinstance(response, dict) and 'content' in response:
-            return response['content']
+            result = response['content']
         elif isinstance(response, str):
-            return response
+            result = response
         else:
-            return str(response)
+            result = str(response)
+        
+        # CORRECTION MOBILE : Nettoyer la réponse
+        return clean_text_for_mobile(result)
     except Exception as e:
         logging.error(f"Erreur lors de la reformulation des compétences: {e}")
         return "Impossible de reformuler les compétences selon l'APC."
     
 def generate_structured_training_scenario(llm, vectorstore, input_data, input_type, duration_minutes=210, custom_csv_structure=None):
-    """Génère un scénario de formation structuré."""
+    """Génère un scénario de formation structuré - VERSION MOBILE SAFE"""
+    
+    # CORRECTION MOBILE : Nettoyer les données d'entrée
+    clean_input_data = clean_text_for_mobile(input_data)
     
     # Structure par défaut si aucune structure personnalisée n'est fournie
     default_csv_structure = """DURÉE\tHORAIRES\tCONTENU\tOBJECTIFS PÉDAGOGIQUES\tMETHODE\tREPARTITION DES APPRENANTS\tACTIVITES\t\tRESSOURCES et MATERIEL\tEVALUATION\t
@@ -357,14 +431,18 @@ def generate_structured_training_scenario(llm, vectorstore, input_data, input_ty
     
     retrieved_docs = retrieve_documents(
         vectorstore,
-        f"Formation sur {input_data}, méthodologie, Approche Par Compétences, APC, TARDIF, méthodes pédagogiques",
+        f"Formation sur {clean_input_data}, méthodologie, Approche Par Compétences, APC, TARDIF, méthodes pédagogiques",
         max_results=10  
     )
     
     context = "\n\n".join([doc["content"] for doc in retrieved_docs[:5]])
     
-    csv_reader = csv.reader(StringIO(csv_structure), delimiter='\t')
-    headers = next(csv_reader, None)
+    try:
+        csv_reader = csv.reader(StringIO(csv_structure), delimiter='\t')
+        headers = next(csv_reader, None)
+    except Exception as e:
+        logging.error(f"Erreur lecture CSV: {e}")
+        headers = None
     
     if not headers:
         logging.error("Structure CSV invalide: impossible de lire les en-têtes")
@@ -374,7 +452,7 @@ def generate_structured_training_scenario(llm, vectorstore, input_data, input_ty
     Tu es un expert en ingénierie de formation professionnelle pour adultes (FPA) spécialisé dans la conception de scénarios pédagogiques selon l'Approche Par Compétences (APC).
     
     # DEMANDE SPÉCIFIQUE
-    Je souhaite que tu crées un scénario de formation complet et détaillé sur le sujet suivant : "{input_data}".
+    Je souhaite que tu crées un scénario de formation complet et détaillé sur le sujet suivant : "{clean_input_data}".
     Le type d'entrée fourni est : {input_type}.
     La durée totale de la formation est de {duration_minutes} minutes.
     
@@ -394,19 +472,19 @@ def generate_structured_training_scenario(llm, vectorstore, input_data, input_ty
     - Comment détailler les activités du formateur et des apprenants
     - Comment préciser les types d'évaluation
     
-    Inspire-toi de ce format mais crée un contenu entièrement original pour {input_data} en respectant les principes de l'APC.
+    Inspire-toi de ce format mais crée un contenu entièrement original pour {clean_input_data} en respectant les principes de l'APC.
     
     Cette structure est uniquement un cadre - TU NE DOIS PAS REPRENDRE LE CONTENU d'exemples précédents.
-    Ton scénario doit porter EXCLUSIVEMENT sur {input_data} et non sur un autre sujet.
+    Ton scénario doit porter EXCLUSIVEMENT sur {clean_input_data} et non sur un autre sujet.
     
     # CONSIGNES POUR LA CRÉATION DU SCÉNARIO
     1. ANALYSE PRÉALABLE:
-       - Identifie clairement le public cible pour une formation sur {input_data}
+       - Identifie clairement le public cible pour une formation sur {clean_input_data}
        - Détermine les prérequis nécessaires pour ce type de formation
        - Respecte strictement la durée totale de {duration_minutes} minutes
     
     2. OBJECTIFS PÉDAGOGIQUES SELON L'APC:
-       - Formule 3-5 objectifs pédagogiques spécifiques à {input_data}
+       - Formule 3-5 objectifs pédagogiques spécifiques à {clean_input_data}
        - Utilise la structure TARDIF: Verbe d'action + Contexte + Critères de performance
        - Assure-toi que les objectifs soient observables, mesurables et contextualisés
        - Décompose les compétences complexes en composantes spécifiques
@@ -419,10 +497,10 @@ def generate_structured_training_scenario(llm, vectorstore, input_data, input_ty
        - Calcule précisément les horaires en partant d'une heure de début (9h00 par défaut)
     
     4. MÉTHODES PÉDAGOGIQUES VARIÉES:
-       - Propose une variété de méthodes actives adaptées à l'apprentissage de {input_data}
+       - Propose une variété de méthodes actives adaptées à l'apprentissage de {clean_input_data}
        - Intègre au moins 4 méthodes différentes parmi: apprentissage par l'action, classe inversée, apprentissage par problèmes, jeux de rôles, co-construction, études de cas, etc.
        - Alterne entre méthodes pédagogiques transmissives, actives et expérientielles
-       - Inclus des travaux pratiques spécifiques à {input_data}
+       - Inclus des travaux pratiques spécifiques à {clean_input_data}
     
     5. ÉVALUATION DES COMPÉTENCES:
        - Propose des méthodes d'évaluation formative et/ou sommative
@@ -434,7 +512,7 @@ def generate_structured_training_scenario(llm, vectorstore, input_data, input_ty
     
     # FORMAT DE RÉPONSE
     Avant le tableau, présente brièvement:
-    1. Le titre précis de la formation sur {input_data}
+    1. Le titre précis de la formation sur {clean_input_data}
     2. Le public cible pertinent pour cette formation
     3. Les prérequis nécessaires
     4. Les objectifs généraux de la formation formulés selon l'APC
@@ -446,13 +524,16 @@ def generate_structured_training_scenario(llm, vectorstore, input_data, input_ty
     try:
         response = llm.invoke(prompt)
         if hasattr(response, 'content'):
-            return response.content
+            result = response.content
         elif isinstance(response, dict) and 'content' in response:
-            return response['content']
+            result = response['content']
         elif isinstance(response, str):
-            return response
+            result = response
         else:
-            return str(response)
+            result = str(response)
+        
+        # CORRECTION MOBILE : Nettoyer la réponse
+        return clean_text_for_mobile(result)
     except Exception as e:
         logging.error(f"Erreur lors de la génération du scénario de formation: {e}")
         return "Impossible de générer un scénario de formation."
