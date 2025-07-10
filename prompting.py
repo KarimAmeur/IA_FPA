@@ -339,9 +339,11 @@ def reformulate_competencies_apc(
         logging.error(f"Erreur lors de la reformulation des compétences: {e}")
         return "Impossible de reformuler les compétences selon l'APC."
     
-def generate_structured_training_scenario(llm, vectorstore, input_data, input_type, duration_minutes=210):
+def generate_structured_training_scenario(llm, vectorstore, input_data, input_type, duration_minutes=210, custom_csv_structure=None):
     """Génère un scénario de formation structuré."""
-    csv_structure = """DURÉE\tHORAIRES\tCONTENU\tOBJECTIFS PÉDAGOGIQUES\tMETHODE\tREPARTITION DES APPRENANTS\tACTIVITES\t\tRESSOURCES et MATERIEL\tEVALUATION\t
+    
+    # Structure par défaut si aucune structure personnalisée n'est fournie
+    default_csv_structure = """DURÉE\tHORAIRES\tCONTENU\tOBJECTIFS PÉDAGOGIQUES\tMETHODE\tREPARTITION DES APPRENANTS\tACTIVITES\t\tRESSOURCES et MATERIEL\tEVALUATION\t
 \t\t\t\t\tFormateur\tApprenants\t\tType\tSujet
 20 min\t9h00-9h20\tIntroduction à la formation\tN/A\ttransmissive\tgroupe entier\tprésentation du formateur, du programme et des objectifs, méthodologie et modalités d'évaluation\técoute active, questions\tprésentation PowerPoint, liste des participants\tN/A\tN/A
 25 min\t9h20-9h45\tÉvaluation diagnostique\tIdentifier le niveau initial des participants\tactive\tindividuel puis groupe entier\tdistribution et explication du questionnaire, supervision\tréalisation du test de positionnement\tquestionnaire d'évaluation, stylos\tdiagnostique\tconnaissances préalables
@@ -349,6 +351,9 @@ def generate_structured_training_scenario(llm, vectorstore, input_data, input_ty
 15 min\t10h20-10h35\tPause\tN/A\tN/A\tN/A\tN/A\tN/A\tN/A\tN/A\tN/A
 40 min\t10h35-11h15\tActivité pratique en sous-groupes\tAppliquer les concepts théoriques dans une situation professionnelle en respectant les critères de qualité définis\tactive\tpetits groupes de 3-4\tprésentation des consignes, facilitation, accompagnement des groupes\tétude de cas, résolution collaborative de problèmes\tdocument de travail, fiches consignes, paperboard\tformative\tapplication pratique
 30 min\t11h15-11h45\tMise en commun et analyse\tSynthétiser et analyser les solutions produites en identifiant les points forts et axes d'amélioration\tparticipative\tgroupe entier\tanimation des échanges, apport de compléments, clarifications\tprésentation des productions, partage d'expérience, questions\tpaperboard, feutres\tformative\tcapacité d'analyse et de synthèse"""
+    
+    # Utiliser la structure personnalisée si fournie, sinon la structure par défaut
+    csv_structure = custom_csv_structure if custom_csv_structure else default_csv_structure
     
     retrieved_docs = retrieve_documents(
         vectorstore,
