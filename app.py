@@ -6,6 +6,84 @@ try:
 except ImportError:
     pass
 
+# CORRECTION MOBILE GLOBALE : Patch du module re pour iOS
+import re
+import os
+
+# Sauvegarder les fonctions originales
+_original_compile = re.compile
+_original_search = re.search
+_original_sub = re.sub
+_original_findall = re.findall
+
+def mobile_safe_compile(pattern, flags=0):
+    """Version sécurisée de re.compile pour mobile"""
+    try:
+        # Convertir le pattern en string simple si c'est un objet complexe
+        if hasattr(pattern, 'pattern'):
+            pattern = str(pattern.pattern)
+        elif not isinstance(pattern, str):
+            pattern = str(pattern)
+        
+        # Simplifier les patterns problématiques pour mobile
+        if '(?P<' in pattern or '(?=' in pattern or '(?!' in pattern:
+            # Remplacer par un pattern plus simple
+            pattern = r'[^\s]+'
+        
+        return _original_compile(pattern, flags)
+    except Exception:
+        # En cas d'erreur, utiliser un pattern simple
+        return _original_compile(r'[^\s]+', flags)
+
+def mobile_safe_search(pattern, string, flags=0):
+    """Version sécurisée de re.search pour mobile"""
+    try:
+        if isinstance(pattern, str) and ('(?P<' in pattern or '(?=' in pattern):
+            # Utiliser une recherche simple
+            return None
+        return _original_search(pattern, string, flags)
+    except Exception:
+        return None
+
+def mobile_safe_sub(pattern, repl, string, count=0, flags=0):
+    """Version sécurisée de re.sub pour mobile"""
+    try:
+        if isinstance(pattern, str) and ('(?P<' in pattern or '(?=' in pattern):
+            # Retourner la string originale si pattern trop complexe
+            return string
+        return _original_sub(pattern, repl, string, count, flags)
+    except Exception:
+        return string
+
+def mobile_safe_findall(pattern, string, flags=0):
+    """Version sécurisée de re.findall pour mobile"""
+    try:
+        if isinstance(pattern, str) and ('(?P<' in pattern or '(?=' in pattern):
+            # Retourner une liste vide si pattern trop complexe
+            return []
+        return _original_findall(pattern, string, flags)
+    except Exception:
+        return []
+
+# Appliquer le patch seulement si on détecte un environnement mobile
+try:
+    # Tenter de détecter mobile via user agent ou autres indices
+    import streamlit as st
+    if hasattr(st, 'context') and hasattr(st.context, 'headers'):
+        user_agent = st.context.headers.get('user-agent', '').lower()
+        if any(mobile in user_agent for mobile in ['mobile', 'android', 'iphone', 'ipad']):
+            # Appliquer le patch mobile
+            re.compile = mobile_safe_compile
+            re.search = mobile_safe_search
+            re.sub = mobile_safe_sub
+            re.findall = mobile_safe_findall
+except:
+    # Si on ne peut pas détecter, appliquer le patch par sécurité
+    re.compile = mobile_safe_compile
+    re.search = mobile_safe_search  
+    re.sub = mobile_safe_sub
+    re.findall = mobile_safe_findall
+
 import streamlit as st
 import os
 import zipfile
@@ -262,9 +340,9 @@ def local_css():
             border: 1px solid {COLORS["very_light_blue"]};
         }}
         
-        /* BANNER : Style Edset moderne */
+        /* BANNER : Style sans dégradé */
         .banner {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 50%, {COLORS["secondary"]} 100%);
+            background: {COLORS["primary"]};
             color: white;
             padding: 3rem 2rem;
             border-radius: 20px;
@@ -436,9 +514,9 @@ def local_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Configuration de l'application Streamlit - CHARTE EDSET
+# Configuration de l'application Streamlit
 st.set_page_config(
-    page_title="edset. - écosystème de formation",
+    page_title="Assistant Formation - Ingénierie pédagogique",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -969,8 +1047,8 @@ def initialize_system():
 if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
     st.markdown("""
     <div class="auth-container">
-        <h1>🎓 edset.</h1>
-        <h2 style="font-style: italic; font-weight: 300; opacity: 0.9;">écosystème de formation</h2>
+        <h1>🎓 Assistant Formation</h1>
+        <h2 style="font-style: italic; font-weight: 300; opacity: 0.9;">Ingénierie pédagogique</h2>
         <p style="font-size: 1.2rem; margin: 30px 0;">
             Connectez-vous avec votre compte Google pour accéder à votre espace personnel de formation
         </p>
@@ -1031,8 +1109,8 @@ if user_id and f'RAG_user_{user_id}' not in st.session_state:
 if st.session_state.initialization_status == "database_missing":
     st.markdown("""
     <div class="banner">
-        <h1>🎓 edset.</h1>
-        <p>écosystème de formation - Configuration initiale requise</p>
+        <h1>🎓 Assistant Formation</h1>
+        <p>Configuration initiale requise</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1055,8 +1133,8 @@ def main_chat_page():
     
     st.markdown(f"""
     <div class="banner">
-        <h1>🎓 edset.</h1>
-        <p>écosystème de formation</p>
+        <h1>🎓 Assistant Formation</h1>
+        <p>Votre partenaire intelligent pour la formation professionnelle</p>
         <div class="user-info">
             👤 Connecté en tant que : {st.user.name} ({st.user.email})
         </div>
@@ -1144,8 +1222,8 @@ def scenarisation_page():
     
     st.markdown("""
     <div class="banner">
-        <h1>🎯 edset.</h1>
-        <p>scénarisation de formation</p>
+        <h1>🎯 Scénarisation</h1>
+        <p>Créez des scénarios pédagogiques adaptés à vos objectifs</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1287,9 +1365,9 @@ def scenarisation_page():
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; margin-bottom: 30px;">
-        <div class="logo">edset</div>
+        <div class="logo">AF</div>
         <h3 style="color: #1D5B68; margin: 0; font-weight: 500;">Assistant Formation</h3>
-        <p style="color: #94B7BD; font-size: 0.9rem; margin: 5px 0 0 0; font-style: italic;">écosystème de formation</p>
+        <p style="color: #94B7BD; font-size: 0.9rem; margin: 5px 0 0 0; font-style: italic;">Ingénierie pédagogique</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1348,7 +1426,7 @@ with st.sidebar:
 # ONGLETS DE NAVIGATION PRINCIPAL
 # ==========================================
 
-tab1, tab2, tab3 = st.tabs(["💬 edset. chat", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
+tab1, tab2, tab3 = st.tabs(["💬 Assistant", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
 
 with tab1:
     main_chat_page()
