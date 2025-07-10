@@ -36,7 +36,7 @@ logging.basicConfig(
 
 # CORRECTION MOBILE : Fonction de nettoyage sécurisée
 def clean_text_for_mobile(text):
-    """Nettoie le texte pour éviter les erreurs regex sur mobile"""
+    """Nettoie le texte pour éviter les erreurs regex sur mobile - VERSION RADICALE"""
     if not text or not isinstance(text, str):
         return ""
     
@@ -49,26 +49,30 @@ def clean_text_for_mobile(text):
         text = text.replace('\u2013', '-')  # Tiret demi-cadratin
         text = text.replace('\u2014', '-')  # Tiret cadratin
         
-        # CORRECTION MOBILE : Nettoyer les URLs SANS regex complexe
-        # Utiliser une approche simple sans group specifier name
-        if 'http' in text:
-            # Remplacer simplement les URLs par [LIEN]
-            words = text.split()
-            cleaned_words = []
-            for word in words:
-                if word.startswith(('http://', 'https://', 'www.')):
-                    cleaned_words.append('[LIEN]')
-                else:
-                    cleaned_words.append(word)
-            text = ' '.join(cleaned_words)
+        # CORRECTION RADICALE : Supprimer TOUS les liens et URLs
+        # Ceci élimine la source des erreurs transformGfmAutolinkLiterals
+        words = text.split()
+        cleaned_words = []
+        for word in words:
+            # Supprimer complètement les URLs au lieu de les remplacer
+            if any(url_start in word.lower() for url_start in ['http://', 'https://', 'www.', 'ftp://']):
+                continue  # Ignorer complètement les URLs
+            elif '@' in word and '.' in word:
+                continue  # Ignorer les emails aussi
+            else:
+                cleaned_words.append(word)
+        text = ' '.join(cleaned_words)
         
-        # CORRECTION MOBILE : Nettoyer les caractères de contrôle SANS regex complexe
-        # Remplacer caractère par caractère
+        # Nettoyer les caractères de contrôle
         control_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f'
         for char in control_chars:
             text = text.replace(char, '')
         
-        return text
+        # Supprimer les doubles espaces
+        while '  ' in text:
+            text = text.replace('  ', ' ')
+        
+        return text.strip()
     except Exception:
         # En cas d'erreur, retourner le texte original sans modification
         return str(text)
