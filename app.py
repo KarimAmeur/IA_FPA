@@ -76,7 +76,7 @@ class MistralEmbeddings:
             st.error(f"Erreur embedding requête: {e}")
             return [0.0]*1024
 
-# Définition des couleurs
+# Définition des couleurs - GARDÉES EXACTEMENT COMME VOTRE ORIGINAL
 COLORS = {
     "primary": "#1D5B68",
     "secondary": "#E6525E", 
@@ -88,7 +88,7 @@ COLORS = {
     "text": "#FFFFFF"
 }
 
-# Configuration CSS personnalisée
+# Configuration CSS personnalisée - VOTRE CSS ORIGINAL + AJOUTS MOBILE UNIQUEMENT
 def local_css():
     st.markdown(f"""
     <style>
@@ -151,10 +151,22 @@ def local_css():
             text-align: center;
             margin: 20px 0;
         }}
+        
+        /* AJOUTS MOBILE UNIQUEMENT - SANS CHANGER LE RESTE */
+        @media (max-width: 768px) {{
+            .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
+                font-size: 16px !important; /* Évite le zoom sur iOS */
+            }}
+            
+            .scenario-card, .user-message, .assistant-message {{
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }}
+        }}
     </style>
     """, unsafe_allow_html=True)
 
-# Configuration de l'application Streamlit
+# Configuration de l'application Streamlit - EXACTEMENT COMME VOTRE ORIGINAL
 st.set_page_config(
     page_title="Assistant FPA - Ingénierie de Formation",
     page_icon="📘",
@@ -183,7 +195,7 @@ def clean_corrupted_chromadb(db_path):
         st.error(f"❌ Erreur lors du nettoyage: {e}")
         return False
 
-# Fonctions de gestion de la base vectorielle
+# Fonctions de gestion de la base vectorielle - EXACTEMENT COMME VOTRE ORIGINAL
 @st.cache_resource
 def extract_database_if_needed():
     """Décompresse automatiquement la base vectorielle si nécessaire"""
@@ -214,7 +226,7 @@ def extract_database_if_needed():
     return False
 
 def database_upload_interface():
-    """Interface d'upload de la base vectorielle"""
+    """Interface d'upload de la base vectorielle - EXACTEMENT COMME VOTRE ORIGINAL"""
     
     st.markdown("""
     <div class="upload-box">
@@ -352,7 +364,7 @@ def create_mistral_llm():
         st.error(f"❌ Erreur lors de la création du modèle Mistral: {e}")
         return None
 
-# Initialisation automatique du système
+# Initialisation automatique du système - EXACTEMENT COMME VOTRE ORIGINAL
 def initialize_system():
     """Initialise le système avec gestion automatique de la base et des erreurs"""
     
@@ -378,7 +390,7 @@ def initialize_system():
             
         return vectorstore, llm, "success"
 
-# Vérification et initialisation
+# Vérification et initialisation - EXACTEMENT COMME VOTRE ORIGINAL
 if 'initialized' not in st.session_state:
     vectorstore, llm, status = initialize_system()
     st.session_state.vectorstore = vectorstore
@@ -388,7 +400,7 @@ if 'initialized' not in st.session_state:
     st.session_state.scenarisation_history = []
     st.session_state.initialized = True
 
-# Gestion des erreurs d'initialisation
+# Gestion des erreurs d'initialisation - EXACTEMENT COMME VOTRE ORIGINAL
 if st.session_state.initialization_status == "database_missing":
     st.markdown("""
     <div class="banner">
@@ -447,7 +459,7 @@ elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"
     
     st.stop()
 
-# Page principale de chat
+# Page principale de chat - EXACTEMENT COMME VOTRE ORIGINAL
 def main_chat_page():
     """Page principale de chat avec l'assistant FPA"""
     
@@ -540,7 +552,7 @@ def main_chat_page():
                     </div>
                     """, unsafe_allow_html=True)
 
-    # Sidebar avec outils
+    # Sidebar avec outils - EXACTEMENT COMME VOTRE ORIGINAL
     st.sidebar.markdown("""
     <div style="text-align: center; margin-bottom: 30px;">
         <div class="logo" style="margin: 0 auto;">FPA</div>
@@ -576,7 +588,7 @@ def main_chat_page():
             </div>
             """, unsafe_allow_html=True)
 
-# Page de scénarisation (version complète)
+# Page de scénarisation (version complète) - EXACTEMENT COMME VOTRE ORIGINAL
 def scenarisation_page():
     """Page de scénarisation de formation"""
     
@@ -704,7 +716,7 @@ def scenarisation_page():
         </div>
         """, unsafe_allow_html=True)
 
-# CORRECTION: Onglets de navigation avec 3 onglets
+# CORRECTION: Onglets de navigation avec 3 onglets - EXACTEMENT COMME VOTRE ORIGINAL
 tab1, tab2, tab3 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation", "📚 RAG Personnel"])
 
 with tab1:
