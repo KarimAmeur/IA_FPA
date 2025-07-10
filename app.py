@@ -187,6 +187,67 @@ def local_css():
             border-radius: 8px;
             margin: 5px 0;
         }}
+        
+        .banner {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }}
+        
+        .logo {{
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }}
+        
+        .info-box {{
+            background: {COLORS["very_light_blue"]};
+            color: {COLORS["dark_gray"]};
+            border-left: 4px solid {COLORS["primary"]};
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }}
+        
+        .badge {{
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+        }}
+        
+        .badge-blue {{
+            color: #fff;
+            background-color: {COLORS["primary"]};
+        }}
+        
+        /* CORRECTION MOBILE UNIQUEMENT - SANS TOUCHER AU RESTE */
+        @media (max-width: 768px) {{
+            .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
+                font-size: 16px !important; /* Évite le zoom sur iOS */
+            }}
+            
+            .scenario-card, .user-message, .assistant-message {{
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }}
+        }}
     </style>
     """, unsafe_allow_html=True)
 
