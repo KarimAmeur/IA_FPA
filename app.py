@@ -151,6 +151,24 @@ def local_css():
             text-align: center;
             margin: 20px 0;
         }}
+        
+        .auth-container {{
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+        }}
+        
+        .user-info {{
+            background-color: {COLORS["primary"]};
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin: 10px 0;
+        }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -163,6 +181,46 @@ st.set_page_config(
 )
 
 local_css()
+
+# ==========================================
+# AJOUT AUTHENTIFICATION OAUTH GOOGLE
+# ==========================================
+
+def get_user_identifier():
+    """Récupère un identifiant unique pour l'utilisateur connecté"""
+    if st.user.is_logged_in:
+        # Utilise l'email comme identifiant unique (nettoyé pour les noms de fichiers)
+        return st.user.email.replace('@', '_at_').replace('.', '_dot_')
+    return None
+
+def save_user_rag_state(user_id: str):
+    """Sauvegarde l'état du RAG utilisateur (persistance automatique avec Chroma)"""
+    # Le RAG est déjà persisté automatiquement par Chroma
+    pass
+
+def load_user_rag_state(user_id: str):
+    """Charge l'état du RAG utilisateur spécifique"""
+    user_rag_dir = f"chroma_db_user_{user_id}"
+    
+    if os.path.exists(user_rag_dir) and os.listdir(user_rag_dir):
+        try:
+            embeddings = load_embedding_model()
+            if embeddings:
+                vectorstore = Chroma(
+                    persist_directory=user_rag_dir,
+                    embedding_function=embeddings
+                )
+                st.session_state[f'RAG_user_{user_id}'] = vectorstore
+                return vectorstore
+        except Exception as e:
+            st.error(f"Erreur lors du chargement du RAG utilisateur: {e}")
+    
+    st.session_state[f'RAG_user_{user_id}'] = None
+    return None
+
+# ==========================================
+# FONCTIONS ORIGINALES (INCHANGÉES)
+# ==========================================
 
 # NOUVELLE FONCTION : Nettoyage automatique ChromaDB
 def clean_corrupted_chromadb(db_path):
@@ -333,7 +391,6 @@ def load_vector_store():
         st.error(f"❌ Erreur lors du chargement de la base vectorielle: {e}")
         return None
 
-
 @st.cache_resource
 def create_mistral_llm():
     """Crée l'instance Mistral avec mise en cache"""
@@ -378,7 +435,62 @@ def initialize_system():
             
         return vectorstore, llm, "success"
 
-# Vérification et initialisation
+# ==========================================
+# VÉRIFICATION OAUTH ET POINT D'ENTRÉE
+# ==========================================
+
+# Vérification de l'authentification AVANT tout le reste
+if not st.user.is_logged_in:
+    # Utilisateur non connecté - Page de connexion
+    st.markdown("""
+    <div class="auth-container">
+        <h1>🎓 Assistant FPA</h1>
+        <h2>Ingénierie de Formation</h2>
+        <p style="font-size: 1.2rem; margin: 30px 0;">
+            Connectez-vous avec votre compte Google pour accéder à votre espace personnel de formation
+        </p>
+        
+        <div style="margin: 40px 0;">
+            <h3>✨ Fonctionnalités personnalisées :</h3>
+            <div style="text-align: left; display: inline-block; margin: 20px 0;">
+                <p>📚 • Base de connaissances commune en formation</p>
+                <p>🎯 • Scénarisation pédagogique intelligente</p>
+                <p>📄 • Votre propre RAG personnel</p>
+                <p>💾 • Sauvegarde automatique de vos documents</p>
+                <p>🔒 • Données privées et sécurisées</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Bouton de connexion OAuth
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔐 Se connecter avec Google", 
+                    type="primary", 
+                    use_container_width=True):
+            st.login()
+    
+    st.markdown("""
+    <div style="text-align: center; margin-top: 50px; color: #888;">
+        <p>🔒 <strong>Sécurité et confidentialité :</strong></p>
+        <p>• Vos données sont privées et sécurisées</p>
+        <p>• Chaque utilisateur a son propre espace isolé</p>
+        <p>• Aucune donnée partagée entre utilisateurs</p>
+        <p>• Authentification déléguée à Google (OAuth 2.0)</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.stop()
+
+# ==========================================
+# UTILISATEUR CONNECTÉ - APPLICATION PRINCIPALE
+# ==========================================
+
+# Récupérer l'identifiant utilisateur
+user_id = get_user_identifier()
+
+# Initialisation du système (une seule fois)
 if 'initialized' not in st.session_state:
     vectorstore, llm, status = initialize_system()
     st.session_state.vectorstore = vectorstore
@@ -387,6 +499,10 @@ if 'initialized' not in st.session_state:
     st.session_state.conversation_history = []
     st.session_state.scenarisation_history = []
     st.session_state.initialized = True
+
+# Chargement du RAG utilisateur spécifique
+if user_id and f'RAG_user_{user_id}' not in st.session_state:
+    load_user_rag_state(user_id)
 
 # Gestion des erreurs d'initialisation
 if st.session_state.initialization_status == "database_missing":
@@ -447,14 +563,17 @@ elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"
     
     st.stop()
 
-# Page principale de chat
+# Page principale avec utilisateur connecté
 def main_chat_page():
     """Page principale de chat avec l'assistant FPA"""
     
-    st.markdown("""
+    st.markdown(f"""
     <div class="banner">
         <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
         <p>Votre partenaire intelligent pour la conception et l'amélioration de vos formations professionnelles</p>
+        <div class="user-info">
+            👤 Connecté en tant que : {st.user.name} ({st.user.email})
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -540,13 +659,24 @@ def main_chat_page():
                     </div>
                     """, unsafe_allow_html=True)
 
-    # Sidebar avec outils
+    # Sidebar avec outils et déconnexion
     st.sidebar.markdown("""
     <div style="text-align: center; margin-bottom: 30px;">
         <div class="logo" style="margin: 0 auto;">FPA</div>
         <h3>Assistant Formation</h3>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Informations utilisateur et déconnexion
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(f"**👤 Connecté :** {st.user.name}")
+    st.sidebar.markdown(f"**📧 Email :** {st.user.email}")
+    
+    if st.sidebar.button("🚪 Se déconnecter", use_container_width=True):
+        # Sauvegarder l'état utilisateur
+        if user_id:
+            save_user_rag_state(user_id)
+        st.logout()
     
     st.sidebar.markdown("### 🛠️ Outils supplémentaires")
 
@@ -704,8 +834,12 @@ def scenarisation_page():
         </div>
         """, unsafe_allow_html=True)
 
-# CORRECTION: Onglets de navigation avec 3 onglets
-tab1, tab2, tab3 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation", "📚 RAG Personnel"])
+# ==========================================
+# ONGLETS DE NAVIGATION (ORIGINAL)
+# ==========================================
+
+# Onglets avec RAG personnel spécifique à l'utilisateur
+tab1, tab2, tab3 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
 
 with tab1:
     main_chat_page()
@@ -714,4 +848,13 @@ with tab2:
     scenarisation_page()
 
 with tab3:
-    user_rag_page()  # Appel de la fonction pour afficher la page RAG Personnel
+    # Gérer le RAG spécifique à l'utilisateur
+    if user_id:
+        # Passer le RAG spécifique à l'utilisateur
+        st.session_state.RAG_user = st.session_state.get(f'RAG_user_{user_id}')
+        user_rag_page()  # Appel de la fonction pour afficher la page RAG Personnel
+        # Sauvegarder les changements
+        st.session_state[f'RAG_user_{user_id}'] = st.session_state.RAG_user
+        save_user_rag_state(user_id)
+    else:
+        st.error("❌ Erreur lors de la récupération de l'identifiant utilisateur")

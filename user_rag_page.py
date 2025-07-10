@@ -11,7 +11,7 @@ import pandas as pd
 import PyPDF2
 import docx
 
-# Import pour l'API Mistral
+# Import pour l'API Mistral (utilise la même classe que app.py)
 from mistralai.client import MistralClient
 
 # Import pour PowerPoint
