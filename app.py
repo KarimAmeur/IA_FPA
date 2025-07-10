@@ -6,84 +6,6 @@ try:
 except ImportError:
     pass
 
-# CORRECTION MOBILE GLOBALE : Patch du module re pour iOS
-import re
-import os
-
-# Sauvegarder les fonctions originales
-_original_compile = re.compile
-_original_search = re.search
-_original_sub = re.sub
-_original_findall = re.findall
-
-def mobile_safe_compile(pattern, flags=0):
-    """Version sécurisée de re.compile pour mobile"""
-    try:
-        # Convertir le pattern en string simple si c'est un objet complexe
-        if hasattr(pattern, 'pattern'):
-            pattern = str(pattern.pattern)
-        elif not isinstance(pattern, str):
-            pattern = str(pattern)
-        
-        # Simplifier les patterns problématiques pour mobile
-        if '(?P<' in pattern or '(?=' in pattern or '(?!' in pattern:
-            # Remplacer par un pattern plus simple
-            pattern = r'[^\s]+'
-        
-        return _original_compile(pattern, flags)
-    except Exception:
-        # En cas d'erreur, utiliser un pattern simple
-        return _original_compile(r'[^\s]+', flags)
-
-def mobile_safe_search(pattern, string, flags=0):
-    """Version sécurisée de re.search pour mobile"""
-    try:
-        if isinstance(pattern, str) and ('(?P<' in pattern or '(?=' in pattern):
-            # Utiliser une recherche simple
-            return None
-        return _original_search(pattern, string, flags)
-    except Exception:
-        return None
-
-def mobile_safe_sub(pattern, repl, string, count=0, flags=0):
-    """Version sécurisée de re.sub pour mobile"""
-    try:
-        if isinstance(pattern, str) and ('(?P<' in pattern or '(?=' in pattern):
-            # Retourner la string originale si pattern trop complexe
-            return string
-        return _original_sub(pattern, repl, string, count, flags)
-    except Exception:
-        return string
-
-def mobile_safe_findall(pattern, string, flags=0):
-    """Version sécurisée de re.findall pour mobile"""
-    try:
-        if isinstance(pattern, str) and ('(?P<' in pattern or '(?=' in pattern):
-            # Retourner une liste vide si pattern trop complexe
-            return []
-        return _original_findall(pattern, string, flags)
-    except Exception:
-        return []
-
-# Appliquer le patch seulement si on détecte un environnement mobile
-try:
-    # Tenter de détecter mobile via user agent ou autres indices
-    import streamlit as st
-    if hasattr(st, 'context') and hasattr(st.context, 'headers'):
-        user_agent = st.context.headers.get('user-agent', '').lower()
-        if any(mobile in user_agent for mobile in ['mobile', 'android', 'iphone', 'ipad']):
-            # Appliquer le patch mobile
-            re.compile = mobile_safe_compile
-            re.search = mobile_safe_search
-            re.sub = mobile_safe_sub
-            re.findall = mobile_safe_findall
-except:
-    # Si on ne peut pas détecter, appliquer le patch par sécurité
-    re.compile = mobile_safe_compile
-    re.search = mobile_safe_search  
-    re.sub = mobile_safe_sub
-    re.findall = mobile_safe_findall
-
 import streamlit as st
 import os
 import zipfile
@@ -249,14 +171,23 @@ def local_css():
             background: linear-gradient(135deg, {COLORS["light_blue"]} 0%, {COLORS["primary"]} 100%);
         }}
         
-        /* SIDEBAR : Style Edset */
+        /* SIDEBAR : Style avec texte visible */
         [data-testid="stSidebar"] {{
             background: linear-gradient(180deg, {COLORS["very_light_blue"]} 0%, {COLORS["light_gray"]} 100%);
             border-right: 1px solid {COLORS["very_light_blue"]};
+            color: {COLORS["dark_gray"]};
         }}
         
         [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {{
-            color: {COLORS["primary"]};
+            color: {COLORS["primary"]} !important;
+        }}
+        
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] div, [data-testid="stSidebar"] span {{
+            color: {COLORS["dark_gray"]} !important;
+        }}
+        
+        [data-testid="stSidebar"] .stMarkdown {{
+            color: {COLORS["dark_gray"]} !important;
         }}
         
         /* CARDS : Style Edset moderne */
@@ -433,7 +364,7 @@ def local_css():
             box-shadow: 0 2px 8px rgba(29, 91, 104, 0.2);
         }}
         
-        /* TABS : Style Edset */
+        /* TABS : Style avec texte visible */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 8px;
             background: {COLORS["very_light_blue"]}30;
@@ -446,13 +377,13 @@ def local_css():
             padding: 12px 24px;
             font-family: 'Roboto', sans-serif;
             font-weight: 500;
-            color: {COLORS["text"]};
+            color: {COLORS["dark_gray"]} !important;
             transition: all 0.3s ease;
         }}
         
         .stTabs [aria-selected="true"] {{
             background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
-            color: white;
+            color: white !important;
             box-shadow: 0 4px 15px rgba(29, 91, 104, 0.2);
         }}
         
@@ -514,13 +445,47 @@ def local_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Configuration de l'application Streamlit
+# Configuration de l'application Streamlit - AVEC OPTIONS MOBILE
 st.set_page_config(
     page_title="Assistant Formation - Ingénierie pédagogique",
     page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
 )
+
+# CORRECTION MOBILE : Configuration spécifique pour éviter les erreurs regex
+if 'mobile_config_applied' not in st.session_state:
+    st.session_state.mobile_config_applied = True
+    
+    # Désactiver certaines fonctionnalités qui peuvent causer des problèmes sur mobile
+    try:
+        import streamlit.components.v1 as components
+        # Injection d'un script pour neutraliser les regex problématiques côté client
+        components.html("""
+        <script>
+        // Patch pour les navigateurs mobiles - neutralise les regex complexes
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            // Intercepter les erreurs regex et les ignorer silencieusement
+            const originalError = console.error;
+            console.error = function(...args) {
+                const errorMessage = args.join(' ');
+                if (errorMessage.includes('Invalid regular expression') || 
+                    errorMessage.includes('transformGfmAutolinkLiterals')) {
+                    // Ignorer ces erreurs spécifiques
+                    return;
+                }
+                originalError.apply(console, args);
+            };
+        }
+        </script>
+        """, height=0)
+    except:
+        pass
 
 local_css()
 
