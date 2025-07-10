@@ -498,9 +498,8 @@ def convert_columns_to_csv_structure(selected_columns):
 
 def get_user_identifier():
     """Récupère un identifiant unique pour l'utilisateur connecté"""
-    # Remplacer st.user par st.experimental_user
-    if st.experimental_user.is_logged_in:
-        email = st.experimental_user.email
+    if st.user.is_logged_in:
+        email = st.user.email
         return email.replace('@', '_at_').replace('.', '_dot_')
     return None
 
@@ -731,7 +730,7 @@ def initialize_system():
 # ==========================================
 
 # Vérification de l'authentification AVANT tout le reste
-if not st.experimental_user.is_logged_in:
+if not st.user.is_logged_in:
     st.markdown("""
     <div class="auth-container">
         <h1>🎓 Assistant FPA</h1>
@@ -756,10 +755,9 @@ if not st.experimental_user.is_logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("🔐 Se connecter avec Google", 
-                type="primary", 
-                use_container_width=True):
-        # Ajouter les paramètres requis
-            st.login(provider="google", key="google_login")
+                    type="primary", 
+                    use_container_width=True):
+            st.login()
     
     st.markdown("""
     <div style="text-align: center; margin-top: 50px; color: #888;">
@@ -815,14 +813,13 @@ elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"
 # Page principale avec utilisateur connecté
 def main_chat_page():
     """Page principale de chat avec l'assistant FPA"""
-    st.sidebar.markdown(f"**👤 Connecté :** {st.experimental_user.name}")
-    st.sidebar.markdown(f"**📧 Email :** {st.experimental_user.email}")
+    
     st.markdown(f"""
     <div class="banner">
         <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
         <p>Votre partenaire intelligent pour la conception et l'amélioration de vos formations professionnelles</p>
         <div class="user-info">
-            👤 Connecté en tant que : {st.experimental_user.name} ({st.experimental_user.email})
+            👤 Connecté en tant que : {st.user.name} ({st.user.email})
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1060,9 +1057,9 @@ with st.sidebar:
     st.markdown(f"**👤 Connecté :** {st.user.name}")
     st.markdown(f"**📧 Email :** {st.user.email}")
     
-    if st.sidebar.button("🚪 Se déconnecter", 
-                    use_container_width=True,
-                    key="logout_btn"):
+    if st.button("🚪 Se déconnecter", use_container_width=True):
+        if user_id:
+            save_user_rag_state(user_id)
         st.logout()
     
     st.markdown("---")
