@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List
 from authlib.integrations.requests_client import OAuth2Session
 import requests
-from langLain_community.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_mistralai import ChatMistralAI
 from prompting import (
     retrieve_documents,
