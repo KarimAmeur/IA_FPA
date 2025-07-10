@@ -535,17 +535,30 @@ def require_google_login():
             st.experimental_rerun()
 
 
+
+
+
 def get_user_identifier():
+    if "token" not in st.session_state or "access_token" not in st.session_state["token"]:
+        st.error("Token d'authentification manquant. Veuillez vous connecter.")
+        return None
+
     access_token = st.session_state["token"]["access_token"]
-    user_info = requests.get(
+    response = requests.get(
         "https://www.googleapis.com/oauth2/v2/userinfo",
         headers={"Authorization": f"Bearer {access_token}"}
-    ).json()
+    )
     
-    # Option : afficher le nom
-    st.success(f"Connecté : {user_info['name']} ({user_info['email']})")
-    
-    return user_info["email"]
+    if response.status_code != 200:
+        st.error("Impossible de récupérer les informations utilisateur.")
+        return None
+
+    user_info = response.json()
+
+    st.success(f"Connecté : {user_info.get('name', 'Inconnu')} ({user_info.get('email', 'Email inconnu')})")
+
+    return user_info.get("email")
+
 
 
 def save_user_rag_state(user_id: str):
