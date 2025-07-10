@@ -12,11 +12,13 @@ import zipfile
 import shutil
 from pathlib import Path
 from typing import List
-from authlib.integrations.requests_client import OAuth2Session
 import requests
 
-# CORRECTION: Import corrigé pour Chroma
-from langchain_community.vectorstores import Chroma
+# CORRECTION: Import corrigé pour Chroma (version compatible)
+try:
+    from langchain_chroma import Chroma
+except ImportError:
+    from langchain_community.vectorstores import Chroma
 
 from langchain_mistralai import ChatMistralAI
 from prompting import (
@@ -42,14 +44,6 @@ except:
     MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
     HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN", "")
 
-try:
-    CLIENT_ID = st.secrets["auth"]["client_id"]
-    CLIENT_SECRET = st.secrets["auth"]["client_secret"]
-    REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
-except Exception as e:
-    st.error("Erreur récupération secrets OAuth")
-    st.stop()
-    
 # Configurer le token HuggingFace
 if HUGGINGFACE_TOKEN:
     os.environ["HUGGINGFACE_HUB_TOKEN"] = HUGGINGFACE_TOKEN
@@ -331,26 +325,6 @@ def show_usage_guide():
         </ul>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.markdown("### 🔐 **Sécurité et Confidentialité**")
-    st.markdown("""
-    <div class="guide-section">
-        <p><strong>🛡️ Protection des données :</strong></p>
-        <ul>
-            <li><strong>Authentification Google :</strong> Connexion sécurisée via OAuth 2.0</li>
-            <li><strong>Isolation utilisateur :</strong> Chaque utilisateur a son espace privé</li>
-            <li><strong>Pas de partage :</strong> Vos données ne sont jamais visibles par d'autres</li>
-            <li><strong>Base commune :</strong> Seule la base de formation générale est partagée</li>
-        </ul>
-        
-        <p><strong>💾 Persistance :</strong></p>
-        <ul>
-            <li>Vos documents RAG personnels sont sauvegardés automatiquement</li>
-            <li>Retrouvez vos données à chaque connexion</li>
-            <li>Gestion de la suppression si nécessaire</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
 
 # ==========================================
 # GESTION DES COLONNES DE SCÉNARISATION
@@ -503,63 +477,20 @@ def convert_columns_to_csv_structure(selected_columns):
     return f"{header}\n{example_line}"
 
 # ==========================================
-# AJOUT AUTHENTIFICATION OAUTH GOOGLE
+# GESTION DE L'UTILISATEUR (STREAMLIT CLOUD)
 # ==========================================
 
-def require_google_login():
-    from authlib.integrations.requests_client import OAuth2Session
-    import requests
-
-    CLIENT_ID = st.secrets["auth"]["client_id"]
-    CLIENT_SECRET = st.secrets["auth"]["client_secret"]
-    REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
-
-    oauth = OAuth2Session(
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-        scope="openid email profile",
-        redirect_uri=REDIRECT_URI,
-    )
-
-    if "token" not in st.session_state:
-        query_params = st.experimental_get_query_params()
-        if "code" not in query_params:
-            auth_url, state = oauth.create_authorization_url("https://accounts.google.com/o/oauth2/auth")
-            st.session_state["oauth_state"] = state
-            st.markdown(f"[Se connecter avec Google]({auth_url})", unsafe_allow_html=True)
-            st.stop()
-        else:
-            code = query_params["code"][0]
-            token = oauth.fetch_token("https://oauth2.googleapis.com/token", code=code)
-            st.session_state["token"] = token
-            st.experimental_rerun()
-
-
-
-
-
 def get_user_identifier():
-    if "token" not in st.session_state or "access_token" not in st.session_state["token"]:
-        st.error("Token d'authentification manquant. Veuillez vous connecter.")
+    """Récupère l'identifiant utilisateur de Streamlit Cloud"""
+    try:
+        # Utilise l'API native de Streamlit Cloud pour l'utilisateur connecté
+        if hasattr(st, 'user') and st.user is not None:
+            return st.user.email
+        else:
+            return None
+    except Exception as e:
+        st.error(f"Erreur lors de la récupération de l'utilisateur: {e}")
         return None
-
-    access_token = st.session_state["token"]["access_token"]
-    response = requests.get(
-        "https://www.googleapis.com/oauth2/v2/userinfo",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-    
-    if response.status_code != 200:
-        st.error("Impossible de récupérer les informations utilisateur.")
-        return None
-
-    user_info = response.json()
-
-    st.success(f"Connecté : {user_info.get('name', 'Inconnu')} ({user_info.get('email', 'Email inconnu')})")
-
-    return user_info.get("email")
-
-
 
 def save_user_rag_state(user_id: str):
     """Sauvegarde l'état du RAG utilisateur (persistance automatique avec Chroma)"""
@@ -567,7 +498,7 @@ def save_user_rag_state(user_id: str):
 
 def load_user_rag_state(user_id: str):
     """Charge l'état du RAG utilisateur spécifique"""
-    user_rag_dir = f"chroma_db_user_{user_id}"
+    user_rag_dir = f"chroma_db_user_{user_id.replace('@', '_').replace('.', '_')}"
     
     if os.path.exists(user_rag_dir) and os.listdir(user_rag_dir):
         try:
@@ -586,7 +517,7 @@ def load_user_rag_state(user_id: str):
     return None
 
 # ==========================================
-# FONCTIONS ORIGINALES (INCHANGÉES)
+# FONCTIONS ORIGINALES (CORRECTIONS APPLIQUÉES)
 # ==========================================
 
 def clean_corrupted_chromadb(db_path):
@@ -714,6 +645,7 @@ def load_vector_store():
                 persist_directory=db_path,
                 embedding_function=embeddings
             )
+            # Test de la base
             vectorstore.similarity_search("test", k=1)
             return vectorstore
             
@@ -784,11 +716,11 @@ def initialize_system():
         return vectorstore, llm, "success"
 
 # ==========================================
-# VÉRIFICATION OAUTH ET POINT D'ENTRÉE
+# VÉRIFICATION AUTH ET POINT D'ENTRÉE PRINCIPAL
 # ==========================================
 
 # Vérification de l'authentification AVANT tout le reste
-if not st.user.is_logged_in:
+if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
     st.markdown("""
     <div class="auth-container">
         <h1>🎓 Assistant FPA</h1>
@@ -815,7 +747,7 @@ if not st.user.is_logged_in:
         if st.button("🔐 Se connecter avec Google", 
                     type="primary", 
                     use_container_width=True):
-            st.login()
+            st.switch_page("login")
     
     st.markdown("""
     <div style="text-align: center; margin-top: 50px; color: #888;">
@@ -868,11 +800,11 @@ elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"
     st.error("❌ Erreur lors de l'initialisation du système")
     st.stop()
 
-# Page principale avec utilisateur connecté
+# ==========================================
+# PAGES PRINCIPALES
+# ==========================================
+
 def main_chat_page():
-
-    require_google_login()
-
     """Page principale de chat avec l'assistant FPA"""
     
     st.markdown(f"""
@@ -961,7 +893,6 @@ def main_chat_page():
                     </div>
                     """, unsafe_allow_html=True)
 
-# Page de scénarisation (version améliorée)
 def scenarisation_page():
     """Page de scénarisation de formation avec colonnes personnalisables"""
     
@@ -980,7 +911,6 @@ def scenarisation_page():
             <h3>📋 Paramètres du scénario</h3>
         """, unsafe_allow_html=True)
         
-        # MODIFICATION: Suppression de "Titre" 
         input_type = st.selectbox(
             "Type d'entrée",
             ["Programme", "Compétences"]
@@ -1015,7 +945,7 @@ def scenarisation_page():
         </div>
         """, unsafe_allow_html=True)
         
-        # NOUVEAU: Interface de sélection des colonnes
+        # Interface de sélection des colonnes
         selected_columns = column_selector_interface()
         
         if st.button("✨ Générer le scénario de formation", use_container_width=True):
@@ -1055,7 +985,7 @@ def scenarisation_page():
                     
                     st.write("📝 Génération du scénario pédagogique...")
                     
-                    # NOUVEAU: Conversion des colonnes sélectionnées en structure CSV
+                    # Conversion des colonnes sélectionnées en structure CSV
                     csv_structure = convert_columns_to_csv_structure(selected_columns)
                     
                     # Appel modifié avec la structure CSV personnalisée
@@ -1104,7 +1034,10 @@ def scenarisation_page():
         </div>
         """, unsafe_allow_html=True)
 
-# Sidebar avec guide d'utilisation et déconnexion
+# ==========================================
+# SIDEBAR AVEC OUTILS ET DÉCONNEXION
+# ==========================================
+
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; margin-bottom: 30px;">
@@ -1121,11 +1054,14 @@ with st.sidebar:
     if st.button("🚪 Se déconnecter", use_container_width=True):
         if user_id:
             save_user_rag_state(user_id)
-        st.logout()
+        # Correction pour Streamlit Cloud
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.rerun()
     
     st.markdown("---")
     
-    # NOUVEAU: Guide d'utilisation
+    # Guide d'utilisation
     if st.button("📖 Guide d'utilisation", use_container_width=True, type="secondary"):
         st.session_state.show_guide = not st.session_state.get('show_guide', False)
     
@@ -1162,7 +1098,7 @@ with st.sidebar:
             """, unsafe_allow_html=True)
 
 # ==========================================
-# ONGLETS DE NAVIGATION (AMÉLIORÉS)
+# ONGLETS DE NAVIGATION PRINCIPAL
 # ==========================================
 
 tab1, tab2, tab3 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
