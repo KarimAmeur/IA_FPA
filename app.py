@@ -12,6 +12,8 @@ import zipfile
 import shutil
 from pathlib import Path
 from typing import List
+from authlib.integrations.requests_client import OAuth2Session
+import requests
 
 # CORRECTION: Import corrigé pour Chroma
 from langchain_community.vectorstores import Chroma
@@ -40,6 +42,14 @@ except:
     MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
     HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN", "")
 
+try:
+    CLIENT_ID = st.secrets["auth"]["client_id"]
+    CLIENT_SECRET = st.secrets["auth"]["client_secret"]
+    REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
+except Exception as e:
+    st.error("Erreur récupération secrets OAuth")
+    st.stop()
+    
 # Configurer le token HuggingFace
 if HUGGINGFACE_TOKEN:
     os.environ["HUGGINGFACE_HUB_TOKEN"] = HUGGINGFACE_TOKEN
@@ -496,12 +506,47 @@ def convert_columns_to_csv_structure(selected_columns):
 # AJOUT AUTHENTIFICATION OAUTH GOOGLE
 # ==========================================
 
+def require_google_login():
+    from authlib.integrations.requests_client import OAuth2Session
+    import requests
+
+    CLIENT_ID = st.secrets["auth"]["client_id"]
+    CLIENT_SECRET = st.secrets["auth"]["client_secret"]
+    REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
+
+    oauth = OAuth2Session(
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        scope="openid email profile",
+        redirect_uri=REDIRECT_URI,
+    )
+
+    if "token" not in st.session_state:
+        query_params = st.experimental_get_query_params()
+        if "code" not in query_params:
+            auth_url, state = oauth.create_authorization_url("https://accounts.google.com/o/oauth2/auth")
+            st.session_state["oauth_state"] = state
+            st.markdown(f"[Se connecter avec Google]({auth_url})", unsafe_allow_html=True)
+            st.stop()
+        else:
+            code = query_params["code"][0]
+            token = oauth.fetch_token("https://oauth2.googleapis.com/token", code=code)
+            st.session_state["token"] = token
+            st.experimental_rerun()
+
+
 def get_user_identifier():
-    """Récupère un identifiant unique pour l'utilisateur connecté"""
-    if st.user.is_logged_in:
-        email = st.user.email
-        return email.replace('@', '_at_').replace('.', '_dot_')
-    return None
+    access_token = st.session_state["token"]["access_token"]
+    user_info = requests.get(
+        "https://www.googleapis.com/oauth2/v2/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"}
+    ).json()
+    
+    # Option : afficher le nom
+    st.success(f"Connecté : {user_info['name']} ({user_info['email']})")
+    
+    return user_info["email"]
+
 
 def save_user_rag_state(user_id: str):
     """Sauvegarde l'état du RAG utilisateur (persistance automatique avec Chroma)"""
@@ -812,6 +857,9 @@ elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"
 
 # Page principale avec utilisateur connecté
 def main_chat_page():
+
+    require_google_login()
+
     """Page principale de chat avec l'assistant FPA"""
     
     st.markdown(f"""
