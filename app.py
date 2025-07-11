@@ -79,18 +79,16 @@ class MistralEmbeddings:
             st.error(f"Erreur embedding requête: {e}")
             return [0.0]*1024
 
-# Définition des couleurs - PALETTE HARMONIEUSE
+# Définition des couleurs - CHARTE GRAPHIQUE EDSET
 COLORS = {
     "primary": "#1D5B68",        # Bleu principal Edset
     "secondary": "#E6525E",      # Rouge accent Edset  
     "light_blue": "#94B7BD",     # Bleu ciel Edset
     "very_light_blue": "#DDE7E9", # Bleu très clair Edset
-    "dark_gray": "#2E3440",      # Gris foncé plus doux
-    "light_gray": "#F8F9FA",     # Gris très clair
-    "background": "#FFFFFF",     # Fond blanc
-    "text": "#2E3440",           # Texte gris foncé
-    "sidebar_bg": "#F1F3F4",    # Fond sidebar
-    "sidebar_text": "#2E3440"   # Texte sidebar
+    "dark_gray": "#3F3F3F",      # Gris foncé Edset
+    "light_gray": "#F5F5F6",     # Gris clair Edset
+    "background": "#FFFFFF",     # Fond blanc (charte Edset)
+    "text": "#3F3F3F"            # Texte gris foncé (charte Edset)
 }
 
 # Configuration CSS personnalisée - CHARTE GRAPHIQUE EDSET
@@ -173,29 +171,14 @@ def local_css():
             background: linear-gradient(135deg, {COLORS["light_blue"]} 0%, {COLORS["primary"]} 100%);
         }}
         
-        /* SIDEBAR : Style harmonieux avec bon contraste */
+        /* SIDEBAR : Style Edset */
         [data-testid="stSidebar"] {{
-            background: {COLORS["sidebar_bg"]};
+            background: linear-gradient(180deg, {COLORS["very_light_blue"]} 0%, {COLORS["light_gray"]} 100%);
             border-right: 1px solid {COLORS["very_light_blue"]};
-            color: {COLORS["sidebar_text"]};
-        }}
-        
-        [data-testid="stSidebar"] * {{
-            color: {COLORS["sidebar_text"]} !important;
         }}
         
         [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {{
-            color: {COLORS["primary"]} !important;
-        }}
-        
-        [data-testid="stSidebar"] .stButton>button {{
-            background-color: {COLORS["primary"]} !important;
-            color: white !important;
-            border: none !important;
-        }}
-        
-        [data-testid="stSidebar"] .stButton>button:hover {{
-            background-color: {COLORS["light_blue"]} !important;
+            color: {COLORS["primary"]};
         }}
         
         /* CARDS : Style Edset moderne */
@@ -372,13 +355,12 @@ def local_css():
             box-shadow: 0 2px 8px rgba(29, 91, 104, 0.2);
         }}
         
-        /* TABS : Style avec contraste optimal */
+        /* TABS : Style Edset */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 8px;
-            background: {COLORS["light_gray"]};
+            background: {COLORS["very_light_blue"]}30;
             border-radius: 15px;
-            padding: 8px;
-            border: 1px solid {COLORS["very_light_blue"]};
+            padding: 5px;
         }}
         
         .stTabs [data-baseweb="tab"] {{
@@ -386,14 +368,13 @@ def local_css():
             padding: 12px 24px;
             font-family: 'Roboto', sans-serif;
             font-weight: 500;
-            color: {COLORS["text"]} !important;
-            background: transparent;
+            color: {COLORS["text"]};
             transition: all 0.3s ease;
         }}
         
         .stTabs [aria-selected="true"] {{
-            background: {COLORS["primary"]} !important;
-            color: white !important;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
+            color: white;
             box-shadow: 0 4px 15px rgba(29, 91, 104, 0.2);
         }}
         
@@ -455,71 +436,13 @@ def local_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Configuration de l'application Streamlit - AVEC FIX MOBILE RADICAL
+# Configuration de l'application Streamlit
 st.set_page_config(
     page_title="Assistant Formation - Ingénierie pédagogique",
     page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': None,
-        'Report a bug': None,
-        'About': None
-    }
+    initial_sidebar_state="expanded"
 )
-
-# FIX MOBILE RADICAL : Désactiver le rendu Markdown enrichi
-try:
-    # Injecter du CSS pour masquer les erreurs et simplifier le rendu mobile
-    st.markdown("""
-    <style>
-    /* Fix mobile pour les erreurs regex */
-    @media screen and (max-width: 768px) {
-        /* Simplifier le rendu des messages sur mobile */
-        .stMarkdown {
-            white-space: pre-wrap !important;
-        }
-        
-        /* Désactiver les transformations complexes sur mobile */
-        .stMarkdown a[href*="http"] {
-            pointer-events: none !important;
-            color: inherit !important;
-            text-decoration: none !important;
-        }
-        
-        /* Forcer le texte simple sur mobile */
-        .user-message *, .assistant-message * {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
-        }
-    }
-    </style>
-    
-    <script>
-    // Script pour intercepter les erreurs regex sur mobile
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        window.addEventListener('error', function(e) {
-            if (e.message && e.message.includes('transformGfmAutolinkLiterals')) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-        });
-        
-        // Désactiver les liens automatiques sur mobile
-        window.addEventListener('DOMContentLoaded', function() {
-            const style = document.createElement('style');
-            style.textContent = `
-                @media (max-width: 768px) {
-                    .stMarkdown a { pointer-events: none !important; }
-                }
-            `;
-            document.head.appendChild(style);
-        });
-    }
-    </script>
-    """, unsafe_allow_html=True)
-except:
-    pass
 
 local_css()
 
