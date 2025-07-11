@@ -237,7 +237,7 @@ def local_css():
             background: linear-gradient(135deg, {COLORS["very_light_blue"]}50 0%, {COLORS["background"]} 100%) !important;
         }}
         
-        /* AUTH CONTAINER : Style Edset */
+        /* AUTH CONTAINER : Style Edset CORRIGÉ */
         .auth-container {{
             max-width: 500px;
             margin: 50px auto;
@@ -247,6 +247,19 @@ def local_css():
             text-align: center;
             color: white !important;
             box-shadow: 0 10px 30px rgba(29, 91, 104, 0.3);
+        }}
+        
+        .auth-container * {{
+            color: white !important;
+        }}
+        
+        .auth-container h1, .auth-container h2, .auth-container h3 {{
+            color: white !important;
+        }}
+        
+        .auth-container p {{
+            color: white !important;
+            opacity: 0.95;
         }}
         
         .user-info {{
@@ -497,10 +510,8 @@ def handle_logout():
         st.cache_data.clear()
         st.cache_resource.clear()
         
-        # Nettoyer la session
-        for key in list(st.session_state.keys()):
-            if key not in ['initialized']:  # Garder l'état d'initialisation
-                del st.session_state[key]
+        # CORRECTION: Nettoyer complètement la session
+        st.session_state.clear()
         
         # Force le rechargement de la page
         st.markdown(
@@ -1062,12 +1073,8 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
     </div>
     """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔐 Se connecter avec Google", 
-                    type="primary", 
-                    use_container_width=True):
-            st.switch_page("login")
+    # CORRECTION: Message pour la connexion sur Streamlit Cloud
+    st.info("🔐 **Pour vous connecter :** Cliquez sur 'Sign in' en haut à droite de l'écran")
     
     st.markdown("""
     <div style="text-align: center; margin-top: 50px; color: #888;">
@@ -1101,8 +1108,10 @@ if 'initialized' not in st.session_state:
 if user_id and f'RAG_user_{user_id}' not in st.session_state:
     load_user_rag_state(user_id)
 
-# Gestion des erreurs d'initialisation
-if st.session_state.initialization_status == "database_missing":
+# CORRECTION: Gestion des erreurs d'initialisation avec vérification d'existence
+initialization_status = st.session_state.get('initialization_status', None)
+
+if initialization_status == "database_missing":
     st.markdown("""
     <div class="banner">
         <h1>🎓 Assistant Formation</h1>
@@ -1116,9 +1125,21 @@ if st.session_state.initialization_status == "database_missing":
     if not database_upload_interface():
         st.stop()
 
-elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"]:
+elif initialization_status in ["vectorstore_error", "llm_error"]:
     st.error("❌ Erreur lors de l'initialisation du système")
     st.stop()
+
+elif initialization_status is None:
+    # Si l'état d'initialisation n'existe pas, réinitialiser
+    st.info("🔄 Réinitialisation nécessaire...")
+    vectorstore, llm, status = initialize_system()
+    st.session_state.vectorstore = vectorstore
+    st.session_state.llm = llm
+    st.session_state.initialization_status = status
+    st.session_state.conversation_history = []
+    st.session_state.scenarisation_history = []
+    st.session_state.initialized = True
+    st.rerun()
 
 # ==========================================
 # PAGES PRINCIPALES
