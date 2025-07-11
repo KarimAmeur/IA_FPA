@@ -79,30 +79,32 @@ class MistralEmbeddings:
             st.error(f"Erreur embedding requête: {e}")
             return [0.0]*1024
 
-# PALETTE BASÉE SUR VOTRE PORTFOLIO - Moderne et harmonieuse
+# PALETTE EDSET OFFICIELLE - Selon votre charte graphique
 COLORS = {
-    "primary": "#2563eb",           # Bleu moderne principal
-    "primary_dark": "#1d4ed8",      # Bleu foncé pour les contrastes
-    "secondary": "#3b82f6",         # Bleu secondaire
-    "accent": "#10b981",            # Vert accent (success)
-    "accent_orange": "#f59e0b",     # Orange accent moderne
-    "background": "#fafafa",        # Fond gris très clair
+    "primary": "#1D5B68",           # Bleu principal EDSET
+    "primary_dark": "#0f3d47",      # Bleu plus foncé
+    "secondary": "#E6525E",         # Rouge accent EDSET
+    "accent": "#94B7BD",            # Bleu ciel EDSET
+    "accent_light": "#DDE7E9",      # Bleu très clair EDSET
+    "background": "#ffffff",        # Fond blanc
     "surface": "#ffffff",           # Surface blanche
     "surface_secondary": "#f8fafc", # Surface gris très clair
-    "text_primary": "#1f2937",      # Texte principal sombre
-    "text_secondary": "#6b7280",    # Texte secondaire gris
+    "text_primary": "#3F3F3F",      # Gris foncé EDSET
+    "text_secondary": "#6b7280",    # Texte secondaire
     "text_muted": "#9ca3af",        # Texte atténué
-    "border": "#e5e7eb",            # Bordures discrètes
+    "border": "#DDE7E9",            # Bordures bleu clair EDSET
     "border_light": "#f3f4f6",      # Bordures très claires
-    "shadow": "rgba(0, 0, 0, 0.05)" # Ombres subtiles
+    "shadow": "rgba(29, 91, 104, 0.05)" # Ombres bleu EDSET
 }
 
 # Configuration CSS moderne avec VOS vrais SVG
 def local_css():
     st.markdown(f"""
     <style>
-        /* IMPORT FONTS - Même stack que votre portfolio */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        /* TYPOGRAPHIE EDSET OFFICIELLE */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&display=swap');
+        
+        /* Note: Omnes n'est pas disponible sur Google Fonts, on utilise Roboto comme fallback */
         
         /* RESET ET BASE */
         * {{
@@ -110,18 +112,18 @@ def local_css():
         }}
         
         .stApp {{
-            background: linear-gradient(135deg, {COLORS["background"]} 0%, {COLORS["surface_secondary"]} 100%);
+            background: {COLORS["background"]};
             color: {COLORS["text_primary"]};
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
             font-weight: 400;
             line-height: 1.6;
         }}
         
-        /* TYPOGRAPHIE MODERNE */
+        /* TYPOGRAPHIE SELON CHARTE EDSET */
         h1, h2, h3, h4, h5, h6 {{
-            color: {COLORS["text_primary"]};
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
+            color: {COLORS["primary"]};
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500; /* Roboto Medium pour les titres selon charte */
             line-height: 1.3;
             letter-spacing: -0.025em;
         }}
@@ -133,17 +135,18 @@ def local_css():
         
         h2 {{
             font-size: 2rem;
-            font-weight: 600;
+            font-weight: 500;
         }}
         
         h3 {{
             font-size: 1.5rem;
-            font-weight: 600;
+            font-weight: 500;
         }}
         
         p {{
-            color: {COLORS["text_secondary"]};
-            font-weight: 400;
+            color: {COLORS["text_primary"]};
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300; /* Roboto Light pour les paragraphes selon charte */
         }}
         
         /* INPUTS MODERNES */
@@ -169,40 +172,41 @@ def local_css():
             outline: none;
         }}
         
-        /* BOUTONS MODERNES */
+        /* BOUTONS SELON CHARTE EDSET */
         .stButton>button {{
             background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
             color: white;
             border: none;
             border-radius: 12px;
             padding: 12px 24px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
             font-weight: 500;
             font-size: 0.95rem;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+            box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
             letter-spacing: -0.025em;
         }}
         
         .stButton>button:hover {{
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.35);
+            box-shadow: 0 8px 25px rgba(29, 91, 104, 0.35);
+            background: linear-gradient(135deg, {COLORS["accent"]} 0%, {COLORS["primary"]} 100%);
         }}
         
         .stButton>button:active {{
             transform: translateY(0);
         }}
         
-        /* BOUTONS SECONDAIRES */
+        /* BOUTONS SECONDAIRES EDSET */
         .stButton>button[kind="secondary"] {{
             background: {COLORS["surface"]};
-            color: {COLORS["text_primary"]};
+            color: {COLORS["primary"]};
             border: 1px solid {COLORS["border"]};
             box-shadow: 0 1px 3px {COLORS["shadow"]};
         }}
         
         .stButton>button[kind="secondary"]:hover {{
-            background: {COLORS["surface_secondary"]};
+            background: {COLORS["accent_light"]};
             border-color: {COLORS["primary"]};
             color: {COLORS["primary"]};
         }}
@@ -342,26 +346,26 @@ def local_css():
         
         .user-message {{
             background: linear-gradient(135deg, {COLORS["primary"]}08 0%, {COLORS["surface"]} 100%);
-            border: 1px solid {COLORS["primary"]}20;
+            border: 1px solid {COLORS["accent"]}40;
             border-left: 4px solid {COLORS["primary"]};
             border-radius: 16px;
             padding: 20px 24px;
             margin: 16px 0;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
             color: {COLORS["text_primary"]};
-            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.05);
+            box-shadow: 0 2px 10px {COLORS["shadow"]};
         }}
         
         .assistant-message {{
-            background: linear-gradient(135deg, {COLORS["accent"]}08 0%, {COLORS["surface"]} 100%);
-            border: 1px solid {COLORS["accent"]}20;
-            border-left: 4px solid {COLORS["accent"]};
+            background: linear-gradient(135deg, {COLORS["secondary"]}08 0%, {COLORS["surface"]} 100%);
+            border: 1px solid {COLORS["secondary"]}20;
+            border-left: 4px solid {COLORS["secondary"]};
             border-radius: 16px;
             padding: 20px 24px;
             margin: 16px 0;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
             color: {COLORS["text_primary"]};
-            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.05);
+            box-shadow: 0 2px 10px rgba(230, 82, 94, 0.05);
         }}
         
         .scenario-card {{
