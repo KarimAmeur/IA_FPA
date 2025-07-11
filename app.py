@@ -10,6 +10,7 @@ import streamlit as st
 import os
 import zipfile
 import shutil
+import html  # ✅ AJOUT POUR LA SÉCURITÉ
 from pathlib import Path
 from typing import List
 import requests
@@ -47,6 +48,26 @@ except:
 # Configurer le token HuggingFace
 if HUGGINGFACE_TOKEN:
     os.environ["HUGGINGFACE_HUB_TOKEN"] = HUGGINGFACE_TOKEN
+
+# ✅ FONCTION DE SÉCURITÉ POUR ÉCHAPPER LE CONTENU HTML
+def safe_html_content(content):
+    """
+    Échapper le contenu pour l'injection HTML sécurisée
+    Traite les cas spéciaux comme les liens et les sauts de ligne
+    """
+    if not content:
+        return ""
+    
+    # Convertir en string au cas où
+    content = str(content)
+    
+    # Échapper tous les caractères HTML
+    escaped = html.escape(content)
+    
+    # Remplacer les sauts de ligne par <br> après l'échappement
+    escaped = escaped.replace('\n', '<br>')
+    
+    return escaped
 
 # NOUVELLE CLASSE: Embeddings Mistral compatible avec LangChain
 class MistralEmbeddings:
@@ -1649,7 +1670,7 @@ def main_chat_page():
         <h1><span class="icon-formation icon-ampoule"></span>Assistant Formation</h1>
         <p>Votre partenaire intelligent pour la formation professionnelle</p>
         <div class="user-info">
-            <span class="icon-formation icon-diplome"></span>Connecté en tant que : {st.user.name} ({st.user.email})
+            <span class="icon-formation icon-diplome"></span>Connecté en tant que : {safe_html_content(st.user.name)} ({safe_html_content(st.user.email)})
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1664,14 +1685,14 @@ def main_chat_page():
                 st.markdown(f"""
                 <div class="user-message">
                     <strong><span class="icon-formation icon-diplome"></span>Vous :</strong><br>
-                    {message['content']}
+                    {safe_html_content(message['content'])}
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="assistant-message">
                     <strong><span class="icon-formation icon-ampoule"></span>Assistant FPA :</strong><br>
-                    {message['content']}
+                    {safe_html_content(message['content'])}
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1685,7 +1706,7 @@ def main_chat_page():
             st.markdown(f"""
             <div class="user-message">
                 <strong><span class="icon-formation icon-diplome"></span>Vous :</strong><br>
-                {prompt}
+                {safe_html_content(prompt)}
             </div>
             """, unsafe_allow_html=True)
 
@@ -1709,7 +1730,7 @@ def main_chat_page():
             st.markdown(f"""
             <div class="assistant-message">
                 <strong><span class="icon-formation icon-ampoule"></span>Assistant FPA :</strong><br>
-                {response}
+                {safe_html_content(response)}
             </div>
             """, unsafe_allow_html=True)
 
@@ -1724,9 +1745,9 @@ def main_chat_page():
                     <div class="modern-card">
                         <h4><span class="icon-formation icon-cloud"></span>Document {i}</h4>
                         <p><span class="badge badge-primary">Score: {doc['score']:.2f}</span></p>
-                        <p><strong>Titre:</strong> {doc['title']}</p>
+                        <p><strong>Titre:</strong> {safe_html_content(doc['title'])}</p>
                         <hr>
-                        {doc['content']}
+                        {safe_html_content(doc['content'])}
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -1805,7 +1826,7 @@ def scenarisation_page():
                 st.markdown(f"""
                 <div class="user-message">
                     <strong><span class="icon-formation icon-diplome"></span>Votre demande :</strong><br>
-                    {user_content}
+                    {safe_html_content(user_content)}
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -1844,7 +1865,7 @@ def scenarisation_page():
                     <div class="info-box">
                         Ce scénario a été généré en fonction de vos paramètres et colonnes sélectionnées.
                     </div>
-                    {scenario}
+                    {safe_html_content(scenario)}
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -1908,8 +1929,8 @@ with st.sidebar:
     
     # Informations utilisateur et déconnexion
     st.markdown("---")
-    st.markdown(f"**<span class='icon-formation icon-diplome'></span>Connecté :** {st.user.name}")
-    st.markdown(f"**📧 Email :** {st.user.email}")
+    st.markdown(f"**<span class='icon-formation icon-diplome'></span>Connecté :** {safe_html_content(st.user.name)}")
+    st.markdown(f"**📧 Email :** {safe_html_content(st.user.email)}")
     
     if st.button("🚪 Se déconnecter", use_container_width=True):
         if user_id:
@@ -1940,7 +1961,7 @@ with st.sidebar:
                 <div class="info-box">
                     Ce plan peut servir de modèle pour vos propres formations.
                 </div>
-                {exemple_plan}
+                {safe_html_content(exemple_plan)}
             </div>
             """, unsafe_allow_html=True)
 
@@ -1953,7 +1974,7 @@ with st.sidebar:
                 <div class="info-box">
                     Conseils pour améliorer vos méthodes d'ingénierie pédagogique.
                 </div>
-                {aide_ingenierie}
+                {safe_html_content(aide_ingenierie)}
             </div>
             """, unsafe_allow_html=True)
     
