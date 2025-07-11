@@ -228,7 +228,7 @@ def local_css():
             color: {COLORS["text_primary"]} !important;
         }}
         
-        /* VOS VRAIES IMAGES SVG - ICÔNES */
+        /* VOS VRAIES IMAGES SVG DU DOSSIER PICTURES */
         .icon-formation {{
             display: inline-block;
             width: 24px;
@@ -240,6 +240,7 @@ def local_css():
             margin-right: 8px;
         }}
         
+        /* UTILISATION DE VOS VRAIES IMAGES */
         .icon-formateur {{
             background-image: url('./formation-formateur-tableau.svg');
         }}
@@ -284,6 +285,34 @@ def local_css():
             background-image: url('./commerce-business.svg');
         }}
         
+        .icon-bureautique {{
+            background-image: url('./bureautique.svg');
+        }}
+        
+        .icon-gestion-rh {{
+            background-image: url('./gestion-rh.svg');
+        }}
+        
+        .icon-design {{
+            background-image: url('./design.svg');
+        }}
+        
+        .icon-dev-web {{
+            background-image: url('./developpement-web.svg');
+        }}
+        
+        .icon-langues {{
+            background-image: url('./langues-bulles-conversation-01.svg');
+        }}
+        
+        .icon-stethoscope {{
+            background-image: url('./stethoscope.svg');
+        }}
+        
+        .icon-theatre {{
+            background-image: url('./masques-theatre.svg');
+        }}
+        
         .icon-presentiel {{
             background-image: url('./modalites-presentiel.svg');
         }}
@@ -294,6 +323,78 @@ def local_css():
         
         .icon-hybride {{
             background-image: url('./modalite-hybride.svg');
+        }}
+        
+        .icon-progress {{
+            background-image: url('./24-in-progress.svg');
+        }}
+        
+        .icon-press-play {{
+            background-image: url('./27-press-play.svg');
+        }}
+        
+        .icon-construire {{
+            background-image: url('./23-construire-sa-formation.svg');
+        }}
+        
+        .icon-cloud-big {{
+            background-image: url('./18-cloud.svg');
+        }}
+        
+        .icon-avatar {{
+            background-image: url('./avatar-defaut.svg');
+        }}
+        
+        .icon-prix {{
+            background-image: url('./prix.svg');
+        }}
+        
+        .icon-financer {{
+            background-image: url('./financer-formation.svg');
+        }}
+        
+        .icon-entreprise {{
+            background-image: url('./entreprise-immeuble.svg');
+        }}
+        
+        .icon-profil {{
+            background-image: url('./profil-particulier.svg');
+        }}
+        
+        .icon-vignettes {{
+            background-image: url('./vignettes-photos.svg');
+        }}
+        
+        .icon-palette {{
+            background-image: url('./palette-peinture.svg');
+        }}
+        
+        .icon-scotch {{
+            background-image: url('./papier-scotch.svg');
+        }}
+        
+        .icon-cactus {{
+            background-image: url('./cactus.svg');
+        }}
+        
+        .icon-calculatrice {{
+            background-image: url('./comptabilite-calculatrice.svg');
+        }}
+        
+        .icon-tirelire {{
+            background-image: url('./commerce-tirelire.svg');
+        }}
+        
+        .icon-contrat {{
+            background-image: url('./commerce-contrat.svg');
+        }}
+        
+        .icon-server {{
+            background-image: url('./reseaux-server.svg');
+        }}
+        
+        .icon-reseaux {{
+            background-image: url('./reseaux.svg');
         }}
         
         /* ICÔNES PLUS GRANDES POUR SECTIONS */
@@ -378,7 +479,7 @@ def local_css():
             transition: all 0.2s ease;
         }}
         
-        /* HERO BANNER AVEC VOS IMAGES */
+        /* HERO BANNER AVEC COULEURS EDSET */
         .hero-banner {{
             background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
             color: white;
@@ -388,7 +489,7 @@ def local_css():
             margin-bottom: 2rem;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 20px 40px rgba(29, 91, 104, 0.2);
         }}
         
         .hero-banner::before {{
@@ -398,8 +499,8 @@ def local_css():
             left: 0;
             right: 0;
             bottom: 0;
-            background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at 20% 80%, rgba(148, 183, 189, 0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(221, 231, 233, 0.15) 0%, transparent 50%);
             pointer-events: none;
         }}
         
@@ -419,6 +520,22 @@ def local_css():
             background-blend-mode: overlay;
         }}
         
+        .hero-banner-learning {{
+            background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
+                        url('./learning-cloud.png');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }}
+        
+        .hero-banner-press-play {{
+            background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
+                        url('./press-play.jpg');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }}
+        
         .hero-decoration {{
             position: absolute;
             top: 20px;
@@ -430,6 +547,18 @@ def local_css():
             background-repeat: no-repeat;
             opacity: 0.3;
             z-index: 1;
+        }}
+        
+        .hero-decoration-construire {{
+            background-image: url('./23-construire-sa-formation.svg');
+        }}
+        
+        .hero-decoration-cloud {{
+            background-image: url('./18-cloud.svg');
+        }}
+        
+        .hero-decoration-play {{
+            background-image: url('./27-press-play.svg');
         }}
         
         .hero-banner h1 {{
@@ -492,7 +621,7 @@ def local_css():
             text-align: center;
             margin: 20px 0;
             transition: all 0.3s ease;
-            color: {COLORS["text_secondary"]};
+            color: {COLORS["text_primary"]};
             position: relative;
         }}
         
@@ -516,6 +645,10 @@ def local_css():
             color: {COLORS["primary"]};
         }}
         
+        .upload-box:hover::before {{
+            background-image: url('./cloud-dossier-02.svg');
+        }}
+        
         /* AUTH CONTAINER MODERNE */
         .auth-container {{
             max-width: 500px;
@@ -537,11 +670,11 @@ def local_css():
             color: {COLORS["text_secondary"]} !important;
         }}
         
-        /* LOGO MODERNE AVEC VOS IMAGES */
+        /* LOGO MODERNE AVEC COULEURS EDSET */
         .modern-logo {{
             width: 70px;
             height: 70px;
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["accent"]} 100%);
             border-radius: 20px;
             display: flex;
             align-items: center;
@@ -550,8 +683,8 @@ def local_css():
             font-weight: 700;
             font-size: 1.4rem;
             margin: 0 auto 15px auto;
-            box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
-            font-family: 'Inter', sans-serif;
+            box-shadow: 0 8px 32px rgba(29, 91, 104, 0.3);
+            font-family: 'Roboto', sans-serif;
             letter-spacing: -0.05em;
             position: relative;
         }}
@@ -567,17 +700,17 @@ def local_css():
             filter: brightness(0) invert(1);
         }}
         
-        /* INFO BOX MODERNE */
+        /* INFO BOX AVEC VOS VRAIES IMAGES */
         .info-box {{
-            background: linear-gradient(135deg, {COLORS["accent"]}08 0%, {COLORS["surface"]} 100%);
-            border: 1px solid {COLORS["accent"]}20;
+            background: linear-gradient(135deg, {COLORS["accent"]}20 0%, {COLORS["surface"]} 100%);
+            border: 1px solid {COLORS["accent"]}40;
             border-left: 4px solid {COLORS["accent"]};
             color: {COLORS["text_primary"]};
             padding: 1.5rem;
             border-radius: 12px;
             margin: 1.5rem 0;
-            font-family: 'Inter', sans-serif;
-            font-weight: 400;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300;
             position: relative;
         }}
         
@@ -594,7 +727,26 @@ def local_css():
             opacity: 0.6;
         }}
         
-        /* BADGES MODERNES */
+        /* LOADING ET PROGRESS AVEC VOS IMAGES */
+        .loading-icon {{
+            animation: spin 1s linear infinite;
+            background-image: url('./24-in-progress.svg');
+            width: 32px;
+            height: 32px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }}
+        
+        .pulse-icon {{
+            animation: pulse 2s ease-in-out infinite;
+            background-image: url('./ampoule.svg');
+            width: 24px;
+            height: 24px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }}
+        
+        /* BADGES AVEC COULEURS EDSET */
         .badge {{
             display: inline-block;
             padding: 0.4em 0.8em;
@@ -605,36 +757,36 @@ def local_css():
             white-space: nowrap;
             vertical-align: baseline;
             border-radius: 8px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
         }}
         
         .badge-primary {{
             color: white;
             background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
-            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 2px 8px rgba(29, 91, 104, 0.2);
         }}
         
         .badge-success {{
             color: white;
-            background: linear-gradient(135deg, {COLORS["accent"]} 0%, #059669 100%);
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+            background: linear-gradient(135deg, {COLORS["secondary"]} 0%, #c73e47 100%);
+            box-shadow: 0 2px 8px rgba(230, 82, 94, 0.2);
         }}
         
-        /* TABS MODERNES */
+        /* TABS AVEC COULEURS EDSET */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 8px;
-            background: {COLORS["surface_secondary"]};
+            background: {COLORS["accent_light"]};
             border-radius: 12px;
             padding: 6px;
-            border: 1px solid {COLORS["border_light"]};
+            border: 1px solid {COLORS["border"]};
         }}
         
         .stTabs [data-baseweb="tab"] {{
             border-radius: 8px;
             padding: 12px 20px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Roboto', sans-serif;
             font-weight: 500;
-            color: {COLORS["text_secondary"]} !important;
+            color: {COLORS["text_primary"]} !important;
             background: transparent;
             transition: all 0.2s ease;
             font-size: 0.9rem;
@@ -643,57 +795,21 @@ def local_css():
         .stTabs [aria-selected="true"] {{
             background: {COLORS["primary"]} !important;
             color: white !important;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+            box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
         }}
         
-        /* GUIDE SECTIONS */
-        .guide-section {{
-            background: {COLORS["surface"]};
-            border: 1px solid {COLORS["border_light"]};
-            border-radius: 12px;
-            padding: 20px;
-            margin: 16px 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }}
-        
-        .column-selector {{
-            background: {COLORS["surface_secondary"]};
-            border: 1px solid {COLORS["border_light"]};
-            border-radius: 8px;
-            padding: 12px;
-            margin: 8px 0;
-        }}
-        
-        /* MODALITÉS DE FORMATION */
-        .modalite-presentiel {{
-            background-image: url('./modalites-presentiel.svg');
-        }}
-        
-        .modalite-distanciel {{
-            background-image: url('./modalites-distanciel.svg');
-        }}
-        
-        .modalite-hybride {{
-            background-image: url('./modalite-hybride.svg');
-        }}
-        
-        /* PROGRESS INDICATORS */
-        .progress-icon {{
-            background-image: url('./24-in-progress.svg');
-        }}
-        
-        /* SCROLLBAR MODERNE */
+        /* SCROLLBAR AVEC COULEURS EDSET */
         ::-webkit-scrollbar {{
             width: 6px;
         }}
         
         ::-webkit-scrollbar-track {{
-            background: {COLORS["surface_secondary"]};
+            background: {COLORS["accent_light"]};
             border-radius: 3px;
         }}
         
         ::-webkit-scrollbar-thumb {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["accent"]} 100%);
             border-radius: 3px;
         }}
         
@@ -1624,13 +1740,24 @@ def scenarisation_page():
         </div>
         """, unsafe_allow_html=True)
         
-        # Modalités de formation avec vos vraies icônes
+        # Modalités de formation avec VOS vraies icônes
         st.markdown("""
         <div class="modern-card">
             <h3><span class="section-icon icon-rouages"></span>Modalités disponibles</h3>
-            <p><span class="icon-formation modalite-presentiel"></span><strong>Présentiel</strong> : Formation en face à face</p>
-            <p><span class="icon-formation modalite-distanciel"></span><strong>Distanciel</strong> : Formation à distance</p>
-            <p><span class="icon-formation modalite-hybride"></span><strong>Hybride</strong> : Mix présentiel/distanciel</p>
+            <p><span class="icon-formation icon-presentiel"></span><strong>Présentiel</strong> : Formation en face à face</p>
+            <p><span class="icon-formation icon-distanciel"></span><strong>Distanciel</strong> : Formation à distance</p>
+            <p><span class="icon-formation icon-hybride"></span><strong>Hybride</strong> : Mix présentiel/distanciel</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Outils et ressources avec VOS vraies icônes
+        st.markdown("""
+        <div class="modern-card">
+            <h3><span class="section-icon icon-press-play"></span>Outils disponibles</h3>
+            <p><span class="icon-formation icon-calendrier"></span><strong>Planning</strong> : Gestion du temps</p>
+            <p><span class="icon-formation icon-prix"></span><strong>Budget</strong> : Coût formation</p>
+            <p><span class="icon-formation icon-financer"></span><strong>Financement</strong> : Aide au financement</p>
+            <p><span class="icon-formation icon-vignettes"></span><strong>Ressources</strong> : Supports visuels</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1698,14 +1825,30 @@ with st.sidebar:
             </div>
             """, unsafe_allow_html=True)
     
-    # Section domaines de formation avec vos icônes
+    # Section domaines de formation avec VOS vraies icônes
     st.markdown("### 📚 Domaines de formation")
     st.markdown("""
     <div style="margin: 10px 0;">
         <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-ordinateur"></span>Informatique</p>
         <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-business"></span>Commerce</p>
-        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-rouages"></span>Ingénierie</p>
-        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-diplome"></span>Certification</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-bureautique"></span>Bureautique</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-gestion-rh"></span>Gestion RH</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-design"></span>Design</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-dev-web"></span>Développement web</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-langues"></span>Langues</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-stethoscope"></span>Santé</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-theatre"></span>Arts & Culture</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-calculatrice"></span>Comptabilité</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Section modalités avec VOS vraies icônes
+    st.markdown("### 🎯 Modalités")
+    st.markdown("""
+    <div style="margin: 10px 0;">
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-presentiel"></span>Présentiel</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-distanciel"></span>Distanciel</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-hybride"></span>Hybride</p>
     </div>
     """, unsafe_allow_html=True)
 
