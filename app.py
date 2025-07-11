@@ -79,280 +79,518 @@ class MistralEmbeddings:
             st.error(f"Erreur embedding requête: {e}")
             return [0.0]*1024
 
-# Définition des couleurs - PALETTE HARMONIEUSE
+# PALETTE BASÉE SUR VOTRE PORTFOLIO - Moderne et harmonieuse
 COLORS = {
-    "primary": "#1D5B68",        # Bleu principal Edset
-    "secondary": "#E6525E",      # Rouge accent Edset  
-    "light_blue": "#94B7BD",     # Bleu ciel Edset
-    "very_light_blue": "#DDE7E9", # Bleu très clair Edset
-    "dark_gray": "#2E3440",      # Gris foncé plus doux
-    "light_gray": "#F8F9FA",     # Gris très clair
-    "background": "#FFFFFF",     # Fond blanc
-    "text": "#2E3440",           # Texte gris foncé
-    "sidebar_bg": "#F1F3F4",    # Fond sidebar
-    "sidebar_text": "#2E3440"   # Texte sidebar
+    "primary": "#2563eb",           # Bleu moderne principal
+    "primary_dark": "#1d4ed8",      # Bleu foncé pour les contrastes
+    "secondary": "#3b82f6",         # Bleu secondaire
+    "accent": "#10b981",            # Vert accent (success)
+    "accent_orange": "#f59e0b",     # Orange accent moderne
+    "background": "#fafafa",        # Fond gris très clair
+    "surface": "#ffffff",           # Surface blanche
+    "surface_secondary": "#f8fafc", # Surface gris très clair
+    "text_primary": "#1f2937",      # Texte principal sombre
+    "text_secondary": "#6b7280",    # Texte secondaire gris
+    "text_muted": "#9ca3af",        # Texte atténué
+    "border": "#e5e7eb",            # Bordures discrètes
+    "border_light": "#f3f4f6",      # Bordures très claires
+    "shadow": "rgba(0, 0, 0, 0.05)" # Ombres subtiles
 }
 
-# Configuration CSS personnalisée - CHARTE GRAPHIQUE EDSET
+# Configuration CSS moderne avec VOS vrais SVG
 def local_css():
     st.markdown(f"""
     <style>
-        /* TYPOGRAPHIE EDSET : Omnes + Roboto */
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap');
+        /* IMPORT FONTS - Même stack que votre portfolio */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
-        .stApp {{
-            background-color: {COLORS["background"]};
-            color: {COLORS["text"]};
-            font-family: 'Roboto', sans-serif;
+        /* RESET ET BASE */
+        * {{
+            box-sizing: border-box;
         }}
         
-        /* TITRES : Roboto Medium (selon charte Edset) */
-        h1, h2, h3 {{
-            color: {COLORS["primary"]};
-            font-family: 'Roboto', sans-serif;
-            font-weight: 500;
-            line-height: 1.2;
+        .stApp {{
+            background: linear-gradient(135deg, {COLORS["background"]} 0%, {COLORS["surface_secondary"]} 100%);
+            color: {COLORS["text_primary"]};
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 400;
+            line-height: 1.6;
+        }}
+        
+        /* TYPOGRAPHIE MODERNE */
+        h1, h2, h3, h4, h5, h6 {{
+            color: {COLORS["text_primary"]};
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            line-height: 1.3;
+            letter-spacing: -0.025em;
         }}
         
         h1 {{
             font-size: 2.5rem;
-            font-weight: 600;
+            font-weight: 700;
         }}
         
         h2 {{
             font-size: 2rem;
-            font-weight: 500;
+            font-weight: 600;
         }}
         
         h3 {{
             font-size: 1.5rem;
-            font-weight: 500;
+            font-weight: 600;
         }}
         
-        /* INPUTS : Style Edset */
-        .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
-            background-color: {COLORS["background"]};
-            color: {COLORS["text"]};
-            border: 2px solid {COLORS["very_light_blue"]};
-            border-radius: 8px;
-            font-family: 'Roboto', sans-serif;
-            font-weight: 300;
-            transition: border-color 0.3s ease;
+        p {{
+            color: {COLORS["text_secondary"]};
+            font-weight: 400;
         }}
         
-        .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {{
-            border-color: {COLORS["primary"]};
-            box-shadow: 0 0 0 2px {COLORS["light_blue"]}40;
-        }}
-        
+        /* INPUTS MODERNES */
+        .stTextInput>div>div>input, 
+        .stTextArea>div>div>textarea,
         .stSelectbox>div>div>div {{
-            background-color: {COLORS["background"]};
-            color: {COLORS["text"]};
-            border: 2px solid {COLORS["very_light_blue"]};
-            border-radius: 8px;
-            font-family: 'Roboto', sans-serif;
+            background: {COLORS["surface"]};
+            color: {COLORS["text_primary"]};
+            border: 1px solid {COLORS["border"]};
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 0.95rem;
+            padding: 12px 16px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px {COLORS["shadow"]};
         }}
         
-        /* BOUTONS : Style Edset moderne */
+        .stTextInput>div>div>input:focus, 
+        .stTextArea>div>div>textarea:focus {{
+            border-color: {COLORS["primary"]};
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 1px 3px {COLORS["shadow"]};
+            outline: none;
+        }}
+        
+        /* BOUTONS MODERNES */
         .stButton>button {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 12px 24px;
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-weight: 500;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(29, 91, 104, 0.2);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+            letter-spacing: -0.025em;
         }}
         
         .stButton>button:hover {{
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(29, 91, 104, 0.3);
-            background: linear-gradient(135deg, {COLORS["light_blue"]} 0%, {COLORS["primary"]} 100%);
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.35);
         }}
         
-        /* SIDEBAR : Style harmonieux avec bon contraste */
+        .stButton>button:active {{
+            transform: translateY(0);
+        }}
+        
+        /* BOUTONS SECONDAIRES */
+        .stButton>button[kind="secondary"] {{
+            background: {COLORS["surface"]};
+            color: {COLORS["text_primary"]};
+            border: 1px solid {COLORS["border"]};
+            box-shadow: 0 1px 3px {COLORS["shadow"]};
+        }}
+        
+        .stButton>button[kind="secondary"]:hover {{
+            background: {COLORS["surface_secondary"]};
+            border-color: {COLORS["primary"]};
+            color: {COLORS["primary"]};
+        }}
+        
+        /* SIDEBAR MODERNE */
         [data-testid="stSidebar"] {{
-            background: {COLORS["sidebar_bg"]};
-            border-right: 1px solid {COLORS["very_light_blue"]};
-            color: {COLORS["sidebar_text"]};
+            background: {COLORS["surface"]};
+            border-right: 1px solid {COLORS["border_light"]};
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.04);
         }}
         
         [data-testid="stSidebar"] * {{
-            color: {COLORS["sidebar_text"]} !important;
+            color: {COLORS["text_primary"]} !important;
         }}
         
-        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {{
-            color: {COLORS["primary"]} !important;
+        [data-testid="stSidebar"] h1, 
+        [data-testid="stSidebar"] h2, 
+        [data-testid="stSidebar"] h3 {{
+            color: {COLORS["text_primary"]} !important;
         }}
         
-        [data-testid="stSidebar"] .stButton>button {{
-            background-color: {COLORS["primary"]} !important;
-            color: white !important;
-            border: none !important;
+        /* VOS VRAIES IMAGES SVG - ICÔNES */
+        .icon-formation {{
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            vertical-align: middle;
+            margin-right: 8px;
         }}
         
-        [data-testid="stSidebar"] .stButton>button:hover {{
-            background-color: {COLORS["light_blue"]} !important;
+        .icon-formateur {{
+            background-image: url('./formation-formateur-tableau.svg');
         }}
         
-        /* CARDS : Style Edset moderne */
-        .scenario-card, .user-message, .assistant-message {{
-            background: {COLORS["background"]};
-            color: {COLORS["text"]};
-            padding: 20px;
-            border-radius: 15px;
-            border-left: 5px solid {COLORS["secondary"]};
-            margin-bottom: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            font-family: 'Roboto', sans-serif;
-            font-weight: 300;
-            line-height: 1.6;
+        .icon-ampoule {{
+            background-image: url('./ampoule.svg');
+        }}
+        
+        .icon-checklist {{
+            background-image: url('./checklist.svg');
+        }}
+        
+        .icon-cloud {{
+            background-image: url('./cloud-dossier-02.svg');
+        }}
+        
+        .icon-calendrier {{
+            background-image: url('./calendrier.svg');
+        }}
+        
+        .icon-duree {{
+            background-image: url('./duree-montre.svg');
+        }}
+        
+        .icon-engrenages {{
+            background-image: url('./engrenages.svg');
+        }}
+        
+        .icon-rouages {{
+            background-image: url('./formation-formateur-rouages.svg');
+        }}
+        
+        .icon-diplome {{
+            background-image: url('./formation-formateur-diplome.svg');
+        }}
+        
+        .icon-ordinateur {{
+            background-image: url('./informatique-ordinateur.svg');
+        }}
+        
+        .icon-business {{
+            background-image: url('./commerce-business.svg');
+        }}
+        
+        .icon-presentiel {{
+            background-image: url('./modalites-presentiel.svg');
+        }}
+        
+        .icon-distanciel {{
+            background-image: url('./modalites-distanciel.svg');
+        }}
+        
+        .icon-hybride {{
+            background-image: url('./modalite-hybride.svg');
+        }}
+        
+        /* ICÔNES PLUS GRANDES POUR SECTIONS */
+        .section-icon {{
+            width: 40px;
+            height: 40px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: inline-block;
+            margin-right: 12px;
+            vertical-align: middle;
+        }}
+        
+        /* ANIMATIONS */
+        @keyframes spin {{
+            from {{ transform: rotate(0deg); }}
+            to {{ transform: rotate(360deg); }}
+        }}
+        
+        .loading-icon {{
+            animation: spin 1s linear infinite;
+        }}
+        
+        @keyframes pulse {{
+            0% {{ opacity: 1; }}
+            50% {{ opacity: 0.7; }}
+            100% {{ opacity: 1; }}
+        }}
+        
+        .pulse-icon {{
+            animation: pulse 2s ease-in-out infinite;
+        }}
+        
+        /* CARDS MODERNES */
+        .modern-card {{
+            background: {COLORS["surface"]};
+            border: 1px solid {COLORS["border_light"]};
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+        }}
+        
+        .modern-card:hover {{
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
         }}
         
         .user-message {{
-            border-left-color: {COLORS["primary"]};
-            background: linear-gradient(135deg, {COLORS["very_light_blue"]}20 0%, {COLORS["background"]} 100%);
+            background: linear-gradient(135deg, {COLORS["primary"]}08 0%, {COLORS["surface"]} 100%);
+            border: 1px solid {COLORS["primary"]}20;
+            border-left: 4px solid {COLORS["primary"]};
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin: 16px 0;
+            font-family: 'Inter', sans-serif;
+            color: {COLORS["text_primary"]};
+            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.05);
         }}
         
         .assistant-message {{
-            border-left-color: {COLORS["secondary"]};
-            background: linear-gradient(135deg, {COLORS["light_gray"]}40 0%, {COLORS["background"]} 100%);
+            background: linear-gradient(135deg, {COLORS["accent"]}08 0%, {COLORS["surface"]} 100%);
+            border: 1px solid {COLORS["accent"]}20;
+            border-left: 4px solid {COLORS["accent"]};
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin: 16px 0;
+            font-family: 'Inter', sans-serif;
+            color: {COLORS["text_primary"]};
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.05);
         }}
         
-        .upload-box {{
-            background: linear-gradient(135deg, {COLORS["very_light_blue"]}30 0%, {COLORS["background"]} 100%);
-            border: 2px dashed {COLORS["light_blue"]};
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-            margin: 20px 0;
-            transition: all 0.3s ease;
+        .scenario-card {{
+            background: {COLORS["surface"]};
+            border: 1px solid {COLORS["border_light"]};
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
         }}
         
-        .upload-box:hover {{
-            border-color: {COLORS["primary"]};
-            background: linear-gradient(135deg, {COLORS["very_light_blue"]}50 0%, {COLORS["background"]} 100%);
-        }}
-        
-        /* AUTH CONTAINER : Style Edset */
-        .auth-container {{
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 40px;
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
-            border-radius: 20px;
-            text-align: center;
-            color: white;
-            box-shadow: 0 10px 30px rgba(29, 91, 104, 0.3);
-        }}
-        
-        .user-info {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            margin: 15px 0;
-            font-family: 'Roboto', sans-serif;
-            font-weight: 400;
-        }}
-        
-        .guide-section {{
-            background: {COLORS["background"]};
-            color: {COLORS["text"]};
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border-left: 4px solid {COLORS["primary"]};
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            font-family: 'Roboto', sans-serif;
-            font-weight: 300;
-        }}
-        
-        .column-selector {{
-            background: {COLORS["very_light_blue"]}30;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 8px 0;
-            border: 1px solid {COLORS["very_light_blue"]};
-        }}
-        
-        /* BANNER : Style sans dégradé */
-        .banner {{
-            background: {COLORS["primary"]};
+        /* HERO BANNER AVEC VOS IMAGES */
+        .hero-banner {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
             color: white;
             padding: 3rem 2rem;
             border-radius: 20px;
             text-align: center;
             margin-bottom: 2rem;
-            box-shadow: 0 10px 30px rgba(29, 91, 104, 0.2);
             position: relative;
             overflow: hidden;
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.2);
         }}
         
-        .banner::before {{
+        .hero-banner::before {{
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" stroke-opacity="0.1" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
             pointer-events: none;
         }}
         
-        .banner h1 {{
-            color: white;
+        .hero-banner-formation {{
+            background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
+                        url('./construire-sa-formation.jpg');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }}
+        
+        .hero-banner-ai {{
+            background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
+                        url('./artificial-intelligence.png');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }}
+        
+        .hero-decoration {{
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background-image: url('./ampoule.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.3;
+            z-index: 1;
+        }}
+        
+        .hero-banner h1 {{
+            color: white !important;
             font-size: 2.8rem;
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 1rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
-            z-index: 1;
+            z-index: 2;
+            letter-spacing: -0.03em;
         }}
         
-        .banner p {{
+        .hero-banner p {{
+            color: rgba(255, 255, 255, 0.9) !important;
             font-size: 1.2rem;
-            font-weight: 300;
+            font-weight: 400;
             margin-bottom: 0;
-            opacity: 0.95;
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }}
         
-        /* LOGO : Style Edset */
-        .logo {{
+        /* SIGNATURE DISCRÈTE */
+        .creator-signature {{
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            color: {COLORS["text_muted"]};
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            z-index: 1000;
+            border: 1px solid {COLORS["border_light"]};
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }}
+        
+        /* USER INFO MODERNE */
+        .user-info {{
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 16px;
+            margin: 15px 0;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }}
+        
+        /* UPLOAD BOX MODERNE */
+        .upload-box {{
+            background: linear-gradient(135deg, {COLORS["surface"]} 0%, {COLORS["surface_secondary"]} 100%);
+            border: 2px dashed {COLORS["border"]};
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            color: {COLORS["text_secondary"]};
+            position: relative;
+        }}
+        
+        .upload-box::before {{
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            background-image: url('./cloud-dossier.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.6;
+        }}
+        
+        .upload-box:hover {{
+            border-color: {COLORS["primary"]};
+            background: linear-gradient(135deg, {COLORS["primary"]}05 0%, {COLORS["surface"]} 100%);
+            color: {COLORS["primary"]};
+        }}
+        
+        /* AUTH CONTAINER MODERNE */
+        .auth-container {{
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 40px;
+            background: {COLORS["surface"]};
+            border: 1px solid {COLORS["border_light"]};
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }}
+        
+        .auth-container h1 {{
+            color: {COLORS["primary"]} !important;
+            margin-bottom: 1rem;
+        }}
+        
+        .auth-container h2 {{
+            color: {COLORS["text_secondary"]} !important;
+        }}
+        
+        /* LOGO MODERNE AVEC VOS IMAGES */
+        .modern-logo {{
             width: 70px;
             height: 70px;
             background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
-            border-radius: 50%;
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 1.4rem;
             margin: 0 auto 15px auto;
-            box-shadow: 0 4px 15px rgba(29, 91, 104, 0.3);
-            font-family: 'Roboto', sans-serif;
+            box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+            font-family: 'Inter', sans-serif;
+            letter-spacing: -0.05em;
+            position: relative;
         }}
         
-        /* INFO BOX : Style Edset */
+        .modern-logo::before {{
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-image: url('./formation-formateur-tableau.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            filter: brightness(0) invert(1);
+        }}
+        
+        /* INFO BOX MODERNE */
         .info-box {{
-            background: linear-gradient(135deg, {COLORS["very_light_blue"]}60 0%, {COLORS["light_gray"]}40 100%);
-            color: {COLORS["text"]};
-            border-left: 4px solid {COLORS["primary"]};
+            background: linear-gradient(135deg, {COLORS["accent"]}08 0%, {COLORS["surface"]} 100%);
+            border: 1px solid {COLORS["accent"]}20;
+            border-left: 4px solid {COLORS["accent"]};
+            color: {COLORS["text_primary"]};
             padding: 1.5rem;
-            border-radius: 10px;
+            border-radius: 12px;
             margin: 1.5rem 0;
-            font-family: 'Roboto', sans-serif;
-            font-weight: 300;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            position: relative;
         }}
         
-        /* BADGE : Style Edset */
+        .info-box::before {{
+            content: '';
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            background-image: url('./ampoule.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.6;
+        }}
+        
+        /* BADGES MODERNES */
         .badge {{
             display: inline-block;
             padding: 0.4em 0.8em;
@@ -362,100 +600,166 @@ def local_css():
             text-align: center;
             white-space: nowrap;
             vertical-align: baseline;
-            border-radius: 15px;
-            font-family: 'Roboto', sans-serif;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
         }}
         
-        .badge-blue {{
+        .badge-primary {{
             color: white;
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
-            box-shadow: 0 2px 8px rgba(29, 91, 104, 0.2);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
         }}
         
-        /* TABS : Style avec contraste optimal */
+        .badge-success {{
+            color: white;
+            background: linear-gradient(135deg, {COLORS["accent"]} 0%, #059669 100%);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+        }}
+        
+        /* TABS MODERNES */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 8px;
-            background: {COLORS["light_gray"]};
-            border-radius: 15px;
-            padding: 8px;
-            border: 1px solid {COLORS["very_light_blue"]};
+            background: {COLORS["surface_secondary"]};
+            border-radius: 12px;
+            padding: 6px;
+            border: 1px solid {COLORS["border_light"]};
         }}
         
         .stTabs [data-baseweb="tab"] {{
-            border-radius: 10px;
-            padding: 12px 24px;
-            font-family: 'Roboto', sans-serif;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-family: 'Inter', sans-serif;
             font-weight: 500;
-            color: {COLORS["text"]} !important;
+            color: {COLORS["text_secondary"]} !important;
             background: transparent;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
         }}
         
         .stTabs [aria-selected="true"] {{
             background: {COLORS["primary"]} !important;
             color: white !important;
-            box-shadow: 0 4px 15px rgba(29, 91, 104, 0.2);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
         }}
         
-        /* CORRECTION MOBILE UNIQUEMENT */
+        /* GUIDE SECTIONS */
+        .guide-section {{
+            background: {COLORS["surface"]};
+            border: 1px solid {COLORS["border_light"]};
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }}
+        
+        .column-selector {{
+            background: {COLORS["surface_secondary"]};
+            border: 1px solid {COLORS["border_light"]};
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+        }}
+        
+        /* MODALITÉS DE FORMATION */
+        .modalite-presentiel {{
+            background-image: url('./modalites-presentiel.svg');
+        }}
+        
+        .modalite-distanciel {{
+            background-image: url('./modalites-distanciel.svg');
+        }}
+        
+        .modalite-hybride {{
+            background-image: url('./modalite-hybride.svg');
+        }}
+        
+        /* PROGRESS INDICATORS */
+        .progress-icon {{
+            background-image: url('./24-in-progress.svg');
+        }}
+        
+        /* SCROLLBAR MODERNE */
+        ::-webkit-scrollbar {{
+            width: 6px;
+        }}
+        
+        ::-webkit-scrollbar-track {{
+            background: {COLORS["surface_secondary"]};
+            border-radius: 3px;
+        }}
+        
+        ::-webkit-scrollbar-thumb {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
+            border-radius: 3px;
+        }}
+        
+        ::-webkit-scrollbar-thumb:hover {{
+            background: linear-gradient(135deg, {COLORS["primary_dark"]} 0%, {COLORS["primary"]} 100%);
+        }}
+        
+        /* RESPONSIVE MOBILE */
         @media (max-width: 768px) {{
-            .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
-                font-size: 16px !important; /* Évite le zoom sur iOS */
-            }}
-            
-            .scenario-card, .user-message, .assistant-message {{
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-                padding: 15px;
-            }}
-            
-            .banner {{
+            .hero-banner {{
                 padding: 2rem 1rem;
-                border-radius: 15px;
+                border-radius: 16px;
             }}
             
-            .banner h1 {{
+            .hero-banner h1 {{
                 font-size: 2rem;
             }}
             
-            .banner p {{
+            .hero-banner p {{
                 font-size: 1rem;
             }}
             
-            .logo {{
+            .modern-card, .user-message, .assistant-message, .scenario-card {{
+                padding: 16px;
+                border-radius: 12px;
+            }}
+            
+            .modern-logo {{
                 width: 60px;
                 height: 60px;
                 font-size: 1.2rem;
             }}
+            
+            .creator-signature {{
+                bottom: 5px;
+                right: 5px;
+                font-size: 0.7rem;
+                padding: 3px 6px;
+            }}
+            
+            .section-icon {{
+                width: 32px;
+                height: 32px;
+            }}
+            
+            .icon-formation {{
+                width: 20px;
+                height: 20px;
+            }}
         }}
         
-        /* ANIMATIONS ET TRANSITIONS */
+        /* ANIMATIONS SUBTILES */
         * {{
-            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+            transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
         }}
         
-        /* SCROLLBAR : Style Edset */
-        ::-webkit-scrollbar {{
-            width: 8px;
-        }}
+        /* MASQUER LES ÉLÉMENTS STREAMLIT NON DÉSIRÉS */
+        #MainMenu {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+        .stDeployButton {{display: none;}}
+        header {{visibility: hidden;}}
         
-        ::-webkit-scrollbar-track {{
-            background: {COLORS["light_gray"]};
-            border-radius: 4px;
-        }}
-        
-        ::-webkit-scrollbar-thumb {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
-            border-radius: 4px;
-        }}
-        
-        ::-webkit-scrollbar-thumb:hover {{
-            background: linear-gradient(135deg, {COLORS["light_blue"]} 0%, {COLORS["primary"]} 100%);
+        /* FIX POUR ÉVITER L'AFFICHAGE DU MESSAGE DE BASE */
+        .element-container:has(.stAlert) {{
+            display: none;
         }}
     </style>
     """, unsafe_allow_html=True)
 
-# Configuration de l'application Streamlit - AVEC FIX MOBILE RADICAL
+# Configuration de l'application Streamlit
 st.set_page_config(
     page_title="Assistant Formation - Ingénierie pédagogique",
     page_icon="🎓",
@@ -468,59 +772,14 @@ st.set_page_config(
     }
 )
 
-# FIX MOBILE RADICAL : Désactiver le rendu Markdown enrichi
-try:
-    # Injecter du CSS pour masquer les erreurs et simplifier le rendu mobile
-    st.markdown("""
-    <style>
-    /* Fix mobile pour les erreurs regex */
-    @media screen and (max-width: 768px) {
-        /* Simplifier le rendu des messages sur mobile */
-        .stMarkdown {
-            white-space: pre-wrap !important;
-        }
-        
-        /* Désactiver les transformations complexes sur mobile */
-        .stMarkdown a[href*="http"] {
-            pointer-events: none !important;
-            color: inherit !important;
-            text-decoration: none !important;
-        }
-        
-        /* Forcer le texte simple sur mobile */
-        .user-message *, .assistant-message * {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
-        }
-    }
-    </style>
-    
-    <script>
-    // Script pour intercepter les erreurs regex sur mobile
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        window.addEventListener('error', function(e) {
-            if (e.message && e.message.includes('transformGfmAutolinkLiterals')) {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-        });
-        
-        // Désactiver les liens automatiques sur mobile
-        window.addEventListener('DOMContentLoaded', function() {
-            const style = document.createElement('style');
-            style.textContent = `
-                @media (max-width: 768px) {
-                    .stMarkdown a { pointer-events: none !important; }
-                }
-            `;
-            document.head.appendChild(style);
-        });
-    }
-    </script>
-    """, unsafe_allow_html=True)
-except:
-    pass
+# Signature du créateur (discrète)
+st.markdown("""
+<div class="creator-signature">
+    Conçu par Karim Ameur
+</div>
+""", unsafe_allow_html=True)
 
+# Application du CSS moderne
 local_css()
 
 # ==========================================
@@ -531,7 +790,7 @@ def show_usage_guide():
     """Affiche le guide d'utilisation de l'assistant"""
     st.markdown("""
     <div class="guide-section">
-        <h2>📖 Guide d'utilisation de l'Assistant FPA</h2>
+        <h2><span class="section-icon icon-formateur"></span>Guide d'utilisation de l'Assistant FPA</h2>
         <p>Votre assistant intelligent pour l'ingénierie de formation professionnelle</p>
     </div>
     """, unsafe_allow_html=True)
@@ -672,8 +931,8 @@ def get_default_scenario_columns():
 def column_selector_interface():
     """Interface pour sélectionner les colonnes du tableau de scénarisation"""
     st.markdown("""
-    <div class="scenario-card">
-        <h3>📋 Personnalisation du tableau de scénarisation</h3>
+    <div class="modern-card">
+        <h3><span class="section-icon icon-checklist"></span>Personnalisation du tableau de scénarisation</h3>
         <p>Sélectionnez les colonnes que vous souhaitez inclure dans votre tableau de scénarisation :</p>
     </div>
     """, unsafe_allow_html=True)
@@ -868,7 +1127,7 @@ def extract_database_if_needed():
     zip_path = "chromadb_formation.zip"
     
     if os.path.exists(db_path) and os.listdir(db_path):
-        st.success("✅ Base vectorielle déjà disponible")
+        st.success("✅ Base vectorielle disponible")
         return True
     
     if os.path.exists(zip_path):
@@ -892,7 +1151,7 @@ def database_upload_interface():
     
     st.markdown("""
     <div class="upload-box">
-        <h3>📤 Upload de votre base vectorielle</h3>
+        <h3 style="margin-top: 80px;">📤 Upload de votre base vectorielle</h3>
         <p>La base vectorielle ChromaDB est nécessaire pour le fonctionnement de l'assistant.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -1023,7 +1282,7 @@ def initialize_system():
     if not extract_database_if_needed():
         return None, None, "database_missing"
     
-    with st.spinner("🚀 Initialisation de l'Assistant FPA..."):
+    with st.spinner("🚀 Initialisation de l'Assistant Formation..."):
         vectorstore = load_vector_store()
         
         if vectorstore == "needs_reupload":
@@ -1046,19 +1305,20 @@ def initialize_system():
 if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
     st.markdown("""
     <div class="auth-container">
-        <h1>🎓 Assistant Formation</h1>
-        <h2 style="font-style: italic; font-weight: 300; opacity: 0.9;">Ingénierie pédagogique</h2>
-        <p style="font-size: 1.2rem; margin: 30px 0;">
+        <div class="modern-logo"></div>
+        <h1><span class="icon-formation icon-formateur"></span>Assistant Formation</h1>
+        <h2 style="font-style: italic; font-weight: 300; opacity: 0.8;">Ingénierie pédagogique</h2>
+        <p style="font-size: 1.1rem; margin: 30px 0; color: #6b7280;">
             Connectez-vous avec votre compte Google pour accéder à votre espace personnel de formation
         </p>
         
-        <div style="margin: 40px 0;">
-            <h3>✨ Fonctionnalités personnalisées :</h3>
-            <div style="text-align: left; display: inline-block; margin: 20px 0;">
-                <p>📚 • Base de connaissances commune en formation</p>
-                <p>🎯 • Scénarisation pédagogique intelligente</p>
-                <p>📄 • Votre propre RAG personnel</p>
-                <p>💾 • Sauvegarde automatique de vos documents</p>
+        <div style="margin: 40px 0; text-align: left;">
+            <h3 style="color: #2563eb;"><span class="icon-formation icon-ampoule"></span>Fonctionnalités personnalisées :</h3>
+            <div style="margin: 20px 0; color: #374151;">
+                <p><span class="icon-formation icon-formateur"></span>Base de connaissances commune en formation</p>
+                <p><span class="icon-formation icon-checklist"></span>Scénarisation pédagogique intelligente</p>
+                <p><span class="icon-formation icon-cloud"></span>Votre propre RAG personnel</p>
+                <p><span class="icon-formation icon-engrenages"></span>Sauvegarde automatique de vos documents</p>
                 <p>🔒 • Données privées et sécurisées</p>
             </div>
         </div>
@@ -1073,8 +1333,8 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
             st.switch_page("login")
     
     st.markdown("""
-    <div style="text-align: center; margin-top: 50px; color: #888;">
-        <p>🔒 <strong>Sécurité et confidentialité :</strong></p>
+    <div style="text-align: center; margin-top: 50px; color: #9ca3af;">
+        <p><strong>🔒 Sécurité et confidentialité :</strong></p>
         <p>• Vos données sont privées et sécurisées</p>
         <p>• Chaque utilisateur a son propre espace isolé</p>
         <p>• Aucune donnée partagée entre utilisateurs</p>
@@ -1107,8 +1367,9 @@ if user_id and f'RAG_user_{user_id}' not in st.session_state:
 # Gestion des erreurs d'initialisation
 if st.session_state.initialization_status == "database_missing":
     st.markdown("""
-    <div class="banner">
-        <h1>🎓 Assistant Formation</h1>
+    <div class="hero-banner hero-banner-formation">
+        <div class="hero-decoration"></div>
+        <h1><span class="icon-formation icon-formateur"></span>Assistant Formation</h1>
         <p>Configuration initiale requise</p>
     </div>
     """, unsafe_allow_html=True)
@@ -1131,11 +1392,12 @@ def main_chat_page():
     """Page principale de chat avec l'assistant FPA"""
     
     st.markdown(f"""
-    <div class="banner">
-        <h1>🎓 Assistant Formation</h1>
+    <div class="hero-banner hero-banner-ai">
+        <div class="hero-decoration"></div>
+        <h1><span class="icon-formation icon-ampoule"></span>Assistant Formation</h1>
         <p>Votre partenaire intelligent pour la formation professionnelle</p>
         <div class="user-info">
-            👤 Connecté en tant que : {st.user.name} ({st.user.email})
+            <span class="icon-formation icon-diplome"></span>Connecté en tant que : {st.user.name} ({st.user.email})
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1149,14 +1411,14 @@ def main_chat_page():
             if message['role'] == 'user':
                 st.markdown(f"""
                 <div class="user-message">
-                    <strong>Vous:</strong><br>
+                    <strong><span class="icon-formation icon-diplome"></span>Vous :</strong><br>
                     {message['content']}
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="assistant-message">
-                    <strong>Assistant FPA:</strong><br>
+                    <strong><span class="icon-formation icon-ampoule"></span>Assistant FPA :</strong><br>
                     {message['content']}
                 </div>
                 """, unsafe_allow_html=True)
@@ -1170,7 +1432,7 @@ def main_chat_page():
 
             st.markdown(f"""
             <div class="user-message">
-                <strong>Vous:</strong><br>
+                <strong><span class="icon-formation icon-diplome"></span>Vous :</strong><br>
                 {prompt}
             </div>
             """, unsafe_allow_html=True)
@@ -1194,7 +1456,7 @@ def main_chat_page():
                 
             st.markdown(f"""
             <div class="assistant-message">
-                <strong>Assistant FPA:</strong><br>
+                <strong><span class="icon-formation icon-ampoule"></span>Assistant FPA :</strong><br>
                 {response}
             </div>
             """, unsafe_allow_html=True)
@@ -1207,9 +1469,9 @@ def main_chat_page():
             with st.expander("📚 Documents sources"):
                 for i, doc in enumerate(retrieved_docs, 1):
                     st.markdown(f"""
-                    <div class="scenario-card">
-                        <h4>Document {i}</h4>
-                        <p><span class="badge badge-blue">Score: {doc['score']:.2f}</span></p>
+                    <div class="modern-card">
+                        <h4><span class="icon-formation icon-cloud"></span>Document {i}</h4>
+                        <p><span class="badge badge-primary">Score: {doc['score']:.2f}</span></p>
                         <p><strong>Titre:</strong> {doc['title']}</p>
                         <hr>
                         {doc['content']}
@@ -1220,8 +1482,9 @@ def scenarisation_page():
     """Page de scénarisation de formation avec colonnes personnalisables"""
     
     st.markdown("""
-    <div class="banner">
-        <h1>🎯 Scénarisation</h1>
+    <div class="hero-banner hero-banner-formation">
+        <div class="hero-decoration"></div>
+        <h1><span class="icon-formation icon-checklist"></span>Scénarisation</h1>
         <p>Créez des scénarios pédagogiques adaptés à vos objectifs</p>
     </div>
     """, unsafe_allow_html=True)
@@ -1230,8 +1493,8 @@ def scenarisation_page():
     
     with left_col:
         st.markdown("""
-        <div class="scenario-card">
-            <h3>📋 Paramètres du scénario</h3>
+        <div class="modern-card">
+            <h3><span class="section-icon icon-engrenages"></span>Paramètres du scénario</h3>
         """, unsafe_allow_html=True)
         
         input_type = st.selectbox(
@@ -1247,8 +1510,8 @@ def scenarisation_page():
         st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("""
-        <div class="scenario-card">
-            <h3>⏱️ Durée de formation</h3>
+        <div class="modern-card">
+            <h3><span class="section-icon icon-duree"></span>Durée de formation</h3>
         """, unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
@@ -1261,8 +1524,8 @@ def scenarisation_page():
         
         st.markdown(f"""
         <div style="margin-top: 10px; margin-bottom: 10px;">
-            <span style="background: {COLORS['primary']}; color: white; padding: 5px 10px; border-radius: 5px; font-size: 1rem;">
-                ⏱️ Durée totale: {duration_hours}h{duration_minutes if duration_minutes > 0 else ''} ({total_duration_minutes} minutes)
+            <span class="badge badge-primary" style="padding: 8px 16px; font-size: 1rem;">
+                <span class="icon-formation icon-duree"></span>Durée totale: {duration_hours}h{duration_minutes if duration_minutes > 0 else ''} ({total_duration_minutes} minutes)
             </span>
         </div>
         </div>
@@ -1289,7 +1552,7 @@ def scenarisation_page():
                 
                 st.markdown(f"""
                 <div class="user-message">
-                    <strong>Votre demande:</strong><br>
+                    <strong><span class="icon-formation icon-diplome"></span>Votre demande :</strong><br>
                     {user_content}
                 </div>
                 """, unsafe_allow_html=True)
@@ -1325,7 +1588,7 @@ def scenarisation_page():
                 
                 st.markdown(f"""
                 <div class="assistant-message">
-                    <h3>📋 Votre Scénario de Formation</h3>
+                    <h3><span class="icon-formation icon-checklist"></span>Votre Scénario de Formation</h3>
                     <div class="info-box">
                         Ce scénario a été généré en fonction de vos paramètres et colonnes sélectionnées.
                     </div>
@@ -1344,8 +1607,8 @@ def scenarisation_page():
                 
     with right_col:
         st.markdown("""
-        <div class="scenario-card">
-            <h3>💡 Guide de scénarisation</h3>
+        <div class="modern-card">
+            <h3><span class="section-icon icon-ampoule"></span>Guide de scénarisation</h3>
             <p>Pour créer un scénario de formation efficace:</p>
             <ol>
                 <li><strong>Choisissez un type d'entrée</strong></li>
@@ -1356,6 +1619,16 @@ def scenarisation_page():
             </ol>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Modalités de formation avec vos vraies icônes
+        st.markdown("""
+        <div class="modern-card">
+            <h3><span class="section-icon icon-rouages"></span>Modalités disponibles</h3>
+            <p><span class="icon-formation modalite-presentiel"></span><strong>Présentiel</strong> : Formation en face à face</p>
+            <p><span class="icon-formation modalite-distanciel"></span><strong>Distanciel</strong> : Formation à distance</p>
+            <p><span class="icon-formation modalite-hybride"></span><strong>Hybride</strong> : Mix présentiel/distanciel</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ==========================================
 # SIDEBAR AVEC OUTILS ET DÉCONNEXION
@@ -1364,15 +1637,15 @@ def scenarisation_page():
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; margin-bottom: 30px;">
-        <div class="logo">AF</div>
-        <h3 style="color: #1D5B68; margin: 0; font-weight: 500;">Assistant Formation</h3>
-        <p style="color: #94B7BD; font-size: 0.9rem; margin: 5px 0 0 0; font-style: italic;">Ingénierie pédagogique</p>
+        <div class="modern-logo"></div>
+        <h3 style="color: #2563eb; margin: 0; font-weight: 500;"><span class="icon-formation icon-formateur"></span>Assistant Formation</h3>
+        <p style="color: #6b7280; font-size: 0.9rem; margin: 5px 0 0 0; font-style: italic;">Ingénierie pédagogique</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Informations utilisateur et déconnexion
     st.markdown("---")
-    st.markdown(f"**👤 Connecté :** {st.user.name}")
+    st.markdown(f"**<span class='icon-formation icon-diplome'></span>Connecté :** {st.user.name}")
     st.markdown(f"**📧 Email :** {st.user.email}")
     
     if st.button("🚪 Se déconnecter", use_container_width=True):
@@ -1399,8 +1672,8 @@ with st.sidebar:
         with st.spinner("📝 Génération d'un exemple de plan..."):
             exemple_plan = generate_example_training_plan(st.session_state.llm)
             st.markdown(f"""
-            <div class="scenario-card">
-                <h2>📝 Exemple de Plan de Formation</h2>
+            <div class="modern-card">
+                <h2><span class="section-icon icon-checklist"></span>Exemple de Plan de Formation</h2>
                 <div class="info-box">
                     Ce plan peut servir de modèle pour vos propres formations.
                 </div>
@@ -1412,20 +1685,35 @@ with st.sidebar:
         with st.spinner("🔍 Génération de conseils..."):
             aide_ingenierie = generate_pedagogical_engineering_advice(st.session_state.llm)
             st.markdown(f"""
-            <div class="scenario-card">
-                <h2>🔍 Conseils d'Ingénierie Pédagogique</h2>
+            <div class="modern-card">
+                <h2><span class="section-icon icon-ampoule"></span>Conseils d'Ingénierie Pédagogique</h2>
                 <div class="info-box">
                     Conseils pour améliorer vos méthodes d'ingénierie pédagogique.
                 </div>
                 {aide_ingenierie}
             </div>
             """, unsafe_allow_html=True)
+    
+    # Section domaines de formation avec vos icônes
+    st.markdown("### 📚 Domaines de formation")
+    st.markdown("""
+    <div style="margin: 10px 0;">
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-ordinateur"></span>Informatique</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-business"></span>Commerce</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-rouages"></span>Ingénierie</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-diplome"></span>Certification</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # ONGLETS DE NAVIGATION PRINCIPAL
 # ==========================================
 
-tab1, tab2, tab3 = st.tabs(["💬 Assistant", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
+tab1, tab2, tab3 = st.tabs([
+    "💬 Assistant", 
+    "🎯 Scénarisation", 
+    f"📚 Mon RAG Personnel"
+])
 
 with tab1:
     main_chat_page()
@@ -1435,6 +1723,14 @@ with tab2:
 
 with tab3:
     if user_id:
+        st.markdown("""
+        <div class="hero-banner">
+            <div class="hero-decoration"></div>
+            <h1><span class="icon-formation icon-cloud"></span>Mon RAG Personnel</h1>
+            <p>Créez votre propre base de connaissances avec vos documents</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.session_state.RAG_user = st.session_state.get(f'RAG_user_{user_id}')
         user_rag_page()
         st.session_state[f'RAG_user_{user_id}'] = st.session_state.RAG_user
