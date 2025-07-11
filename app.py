@@ -240,161 +240,161 @@ def local_css():
             margin-right: 8px;
         }}
         
-        /* UTILISATION DE VOS VRAIES IMAGES */
+        /* UTILISATION DE VOS VRAIES IMAGES DEPUIS LE DOSSIER PICTURES */
         .icon-formateur {{
-            background-image: url('./formation-formateur-tableau.svg');
+            background-image: url('./Pictures/formation-formateur-tableau.svg');
         }}
         
         .icon-ampoule {{
-            background-image: url('./ampoule.svg');
+            background-image: url('./Pictures/ampoule.svg');
         }}
         
         .icon-checklist {{
-            background-image: url('./checklist.svg');
+            background-image: url('./Pictures/checklist.svg');
         }}
         
         .icon-cloud {{
-            background-image: url('./cloud-dossier-02.svg');
+            background-image: url('./Pictures/cloud-dossier-02.svg');
         }}
         
         .icon-calendrier {{
-            background-image: url('./calendrier.svg');
+            background-image: url('./Pictures/calendrier.svg');
         }}
         
         .icon-duree {{
-            background-image: url('./duree-montre.svg');
+            background-image: url('./Pictures/duree-montre.svg');
         }}
         
         .icon-engrenages {{
-            background-image: url('./engrenages.svg');
+            background-image: url('./Pictures/engrenages.svg');
         }}
         
         .icon-rouages {{
-            background-image: url('./formation-formateur-rouages.svg');
+            background-image: url('./Pictures/formation-formateur-rouages.svg');
         }}
         
         .icon-diplome {{
-            background-image: url('./formation-formateur-diplome.svg');
+            background-image: url('./Pictures/formation-formateur-diplome.svg');
         }}
         
         .icon-ordinateur {{
-            background-image: url('./informatique-ordinateur.svg');
+            background-image: url('./Pictures/informatique-ordinateur.svg');
         }}
         
         .icon-business {{
-            background-image: url('./commerce-business.svg');
+            background-image: url('./Pictures/commerce-business.svg');
         }}
         
         .icon-bureautique {{
-            background-image: url('./bureautique.svg');
+            background-image: url('./Pictures/bureautique.svg');
         }}
         
         .icon-gestion-rh {{
-            background-image: url('./gestion-rh.svg');
+            background-image: url('./Pictures/gestion-rh.svg');
         }}
         
         .icon-design {{
-            background-image: url('./design.svg');
+            background-image: url('./Pictures/design.svg');
         }}
         
         .icon-dev-web {{
-            background-image: url('./developpement-web.svg');
+            background-image: url('./Pictures/developpement-web.svg');
         }}
         
         .icon-langues {{
-            background-image: url('./langues-bulles-conversation-01.svg');
+            background-image: url('./Pictures/langues-bulles-conversation-01.svg');
         }}
         
         .icon-stethoscope {{
-            background-image: url('./stethoscope.svg');
+            background-image: url('./Pictures/stethoscope.svg');
         }}
         
         .icon-theatre {{
-            background-image: url('./masques-theatre.svg');
+            background-image: url('./Pictures/masques-theatre.svg');
         }}
         
         .icon-presentiel {{
-            background-image: url('./modalites-presentiel.svg');
+            background-image: url('./Pictures/modalites-presentiel.svg');
         }}
         
         .icon-distanciel {{
-            background-image: url('./modalites-distanciel.svg');
+            background-image: url('./Pictures/modalites-distanciel.svg');
         }}
         
         .icon-hybride {{
-            background-image: url('./modalite-hybride.svg');
+            background-image: url('./Pictures/modalite-hybride.svg');
         }}
         
         .icon-progress {{
-            background-image: url('./24-in-progress.svg');
+            background-image: url('./Pictures/24-in-progress.svg');
         }}
         
         .icon-press-play {{
-            background-image: url('./27-press-play.svg');
+            background-image: url('./Pictures/27-press-play.svg');
         }}
         
         .icon-construire {{
-            background-image: url('./23-construire-sa-formation.svg');
+            background-image: url('./Pictures/23-construire-sa-formation.svg');
         }}
         
         .icon-cloud-big {{
-            background-image: url('./18-cloud.svg');
+            background-image: url('./Pictures/18-cloud.svg');
         }}
         
         .icon-avatar {{
-            background-image: url('./avatar-defaut.svg');
+            background-image: url('./Pictures/avatar-defaut.svg');
         }}
         
         .icon-prix {{
-            background-image: url('./prix.svg');
+            background-image: url('./Pictures/prix.svg');
         }}
         
         .icon-financer {{
-            background-image: url('./financer-formation.svg');
+            background-image: url('./Pictures/financer-formation.svg');
         }}
         
         .icon-entreprise {{
-            background-image: url('./entreprise-immeuble.svg');
+            background-image: url('./Pictures/entreprise-immeuble.svg');
         }}
         
         .icon-profil {{
-            background-image: url('./profil-particulier.svg');
+            background-image: url('./Pictures/profil-particulier.svg');
         }}
         
         .icon-vignettes {{
-            background-image: url('./vignettes-photos.svg');
+            background-image: url('./Pictures/vignettes-photos.svg');
         }}
         
         .icon-palette {{
-            background-image: url('./palette-peinture.svg');
+            background-image: url('./Pictures/palette-peinture.svg');
         }}
         
         .icon-scotch {{
-            background-image: url('./papier-scotch.svg');
+            background-image: url('./Pictures/papier-scotch.svg');
         }}
         
         .icon-cactus {{
-            background-image: url('./cactus.svg');
+            background-image: url('./Pictures/cactus.svg');
         }}
         
         .icon-calculatrice {{
-            background-image: url('./comptabilite-calculatrice.svg');
+            background-image: url('./Pictures/comptabilite-calculatrice.svg');
         }}
         
         .icon-tirelire {{
-            background-image: url('./commerce-tirelire.svg');
+            background-image: url('./Pictures/commerce-tirelire.svg');
         }}
         
         .icon-contrat {{
-            background-image: url('./commerce-contrat.svg');
+            background-image: url('./Pictures/commerce-contrat.svg');
         }}
         
         .icon-server {{
-            background-image: url('./reseaux-server.svg');
+            background-image: url('./Pictures/reseaux-server.svg');
         }}
         
         .icon-reseaux {{
-            background-image: url('./reseaux.svg');
+            background-image: url('./Pictures/reseaux.svg');
         }}
         
         /* ICÔNES PLUS GRANDES POUR SECTIONS */
@@ -506,7 +506,7 @@ def local_css():
         
         .hero-banner-formation {{
             background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
-                        url('./construire-sa-formation.jpg');
+                        url('./Pictures/construire-sa-formation.jpg');
             background-size: cover;
             background-position: center;
             background-blend-mode: overlay;
@@ -514,7 +514,7 @@ def local_css():
         
         .hero-banner-ai {{
             background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
-                        url('./artificial-intelligence.png');
+                        url('./Pictures/artificial-intelligence.png');
             background-size: cover;
             background-position: center;
             background-blend-mode: overlay;
@@ -522,7 +522,7 @@ def local_css():
         
         .hero-banner-learning {{
             background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
-                        url('./learning-cloud.png');
+                        url('./Pictures/learning-cloud.png');
             background-size: cover;
             background-position: center;
             background-blend-mode: overlay;
@@ -530,7 +530,7 @@ def local_css():
         
         .hero-banner-press-play {{
             background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
-                        url('./press-play.jpg');
+                        url('./Pictures/press-play.jpg');
             background-size: cover;
             background-position: center;
             background-blend-mode: overlay;
@@ -542,7 +542,7 @@ def local_css():
             right: 30px;
             width: 80px;
             height: 80px;
-            background-image: url('./ampoule.svg');
+            background-image: url('./Pictures/ampoule.svg');
             background-size: contain;
             background-repeat: no-repeat;
             opacity: 0.3;
@@ -550,15 +550,15 @@ def local_css():
         }}
         
         .hero-decoration-construire {{
-            background-image: url('./23-construire-sa-formation.svg');
+            background-image: url('./Pictures/23-construire-sa-formation.svg');
         }}
         
         .hero-decoration-cloud {{
-            background-image: url('./18-cloud.svg');
+            background-image: url('./Pictures/18-cloud.svg');
         }}
         
         .hero-decoration-play {{
-            background-image: url('./27-press-play.svg');
+            background-image: url('./Pictures/27-press-play.svg');
         }}
         
         .hero-banner h1 {{
@@ -633,7 +633,7 @@ def local_css():
             transform: translateX(-50%);
             width: 60px;
             height: 60px;
-            background-image: url('./cloud-dossier.svg');
+            background-image: url('./Pictures/cloud-dossier.svg');
             background-size: contain;
             background-repeat: no-repeat;
             opacity: 0.6;
@@ -646,7 +646,7 @@ def local_css():
         }}
         
         .upload-box:hover::before {{
-            background-image: url('./cloud-dossier-02.svg');
+            background-image: url('./Pictures/cloud-dossier-02.svg');
         }}
         
         /* AUTH CONTAINER MODERNE */
@@ -694,7 +694,7 @@ def local_css():
             position: absolute;
             width: 40px;
             height: 40px;
-            background-image: url('./formation-formateur-tableau.svg');
+            background-image: url('./Pictures/formation-formateur-tableau.svg');
             background-size: contain;
             background-repeat: no-repeat;
             filter: brightness(0) invert(1);
@@ -721,7 +721,7 @@ def local_css():
             right: 1rem;
             width: 24px;
             height: 24px;
-            background-image: url('./ampoule.svg');
+            background-image: url('./Pictures/ampoule.svg');
             background-size: contain;
             background-repeat: no-repeat;
             opacity: 0.6;
@@ -730,7 +730,7 @@ def local_css():
         /* LOADING ET PROGRESS AVEC VOS IMAGES */
         .loading-icon {{
             animation: spin 1s linear infinite;
-            background-image: url('./24-in-progress.svg');
+            background-image: url('./Pictures/24-in-progress.svg');
             width: 32px;
             height: 32px;
             background-size: contain;
@@ -739,7 +739,7 @@ def local_css():
         
         .pulse-icon {{
             animation: pulse 2s ease-in-out infinite;
-            background-image: url('./ampoule.svg');
+            background-image: url('./Pictures/ampoule.svg');
             width: 24px;
             height: 24px;
             background-size: contain;
