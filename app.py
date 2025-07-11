@@ -13,6 +13,13 @@ import shutil
 from pathlib import Path
 from typing import List
 import requests
+import urllib.parse
+import secrets
+import hashlib
+import hmac
+import base64
+import json
+from datetime import datetime, timedelta
 
 # CORRECTION: Import corrigé pour Chroma (version compatible)
 try:
@@ -36,19 +43,265 @@ from user_rag_page import user_rag_page
 # CORRECTION: Import de l'API Mistral pour les embeddings
 from mistralai.client import MistralClient
 
-# Configuration des APIs - Utilise les secrets Streamlit
+# Configuration des APIs et AUTH - Utilise les secrets Streamlit
 try:
     MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
     HUGGINGFACE_TOKEN = st.secrets["HUGGINGFACE_TOKEN"]
-except:
-    MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
-    HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN", "")
+    
+    # Configuration OAuth Google
+    GOOGLE_CLIENT_ID = st.secrets["auth"]["client_id"]
+    GOOGLE_CLIENT_SECRET = st.secrets["auth"]["client_secret"]
+    GOOGLE_REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
+    COOKIE_SECRET = st.secrets["auth"]["cookie_secret"]
+    
+except Exception as e:
+    st.error(f"❌ Erreur de configuration des secrets: {e}")
+    st.stop()
 
 # Configurer le token HuggingFace
 if HUGGINGFACE_TOKEN:
     os.environ["HUGGINGFACE_HUB_TOKEN"] = HUGGINGFACE_TOKEN
 
-# NOUVELLE CLASSE: Embeddings Mistral compatible avec LangChain
+# ==========================================
+# CLASSE GOOGLE OAUTH
+# ==========================================
+
+class GoogleOAuth:
+    def __init__(self, client_id, client_secret, redirect_uri):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
+        self.auth_url = "https://accounts.google.com/o/oauth2/auth"
+        self.token_url = "https://oauth2.googleapis.com/token"
+        self.userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+    
+    def get_authorization_url(self, state):
+        """Génère l'URL d'autorisation Google"""
+        params = {
+            'client_id': self.client_id,
+            'redirect_uri': self.redirect_uri,
+            'scope': 'openid email profile',
+            'response_type': 'code',
+            'state': state,
+            'access_type': 'offline',
+            'prompt': 'consent'
+        }
+        return f"{self.auth_url}?{urllib.parse.urlencode(params)}"
+    
+    def exchange_code_for_token(self, code):
+        """Échange le code d'autorisation contre un token d'accès"""
+        data = {
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.redirect_uri
+        }
+        
+        response = requests.post(self.token_url, data=data)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    
+    def get_user_info(self, access_token):
+        """Récupère les informations utilisateur avec le token d'accès"""
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(self.userinfo_url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        return None
+
+# ==========================================
+# GESTION DE L'AUTHENTIFICATION
+# ==========================================
+
+def generate_state():
+    """Génère un état sécurisé pour OAuth"""
+    return secrets.token_urlsafe(32)
+
+def verify_state(state, stored_state):
+    """Vérifie l'état OAuth"""
+    return hmac.compare_digest(state, stored_state)
+
+def create_session_token(user_info):
+    """Crée un token de session sécurisé"""
+    data = {
+        'user_id': user_info['id'],
+        'email': user_info['email'],
+        'name': user_info['name'],
+        'picture': user_info.get('picture', ''),
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    # Créer un token signé
+    message = base64.b64encode(json.dumps(data).encode()).decode()
+    signature = hmac.new(
+        COOKIE_SECRET.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return f"{message}.{signature}"
+
+def verify_session_token(token):
+    """Vérifie et décode un token de session"""
+    try:
+        if '.' not in token:
+            return None
+            
+        message, signature = token.rsplit('.', 1)
+        
+        # Vérifier la signature
+        expected_signature = hmac.new(
+            COOKIE_SECRET.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(signature, expected_signature):
+            return None
+        
+        # Décoder les données
+        data = json.loads(base64.b64decode(message).decode())
+        
+        # Vérifier que le token n'est pas expiré (24h)
+        token_time = datetime.fromisoformat(data['timestamp'])
+        if datetime.now() - token_time > timedelta(hours=24):
+            return None
+        
+        return data
+    except Exception:
+        return None
+
+def handle_oauth_callback():
+    """Gère le callback OAuth de Google"""
+    query_params = st.query_params
+    
+    if 'code' in query_params and 'state' in query_params:
+        code = query_params['code']
+        state = query_params['state']
+        
+        # Vérifier l'état
+        stored_state = st.session_state.get('oauth_state')
+        if not stored_state or not verify_state(state, stored_state):
+            st.error("❌ Erreur de sécurité: état OAuth invalide")
+            return False
+        
+        # Échanger le code contre un token
+        oauth = GoogleOAuth(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)
+        token_data = oauth.exchange_code_for_token(code)
+        
+        if not token_data or 'access_token' not in token_data:
+            st.error("❌ Erreur lors de l'obtention du token d'accès")
+            return False
+        
+        # Obtenir les informations utilisateur
+        user_info = oauth.get_user_info(token_data['access_token'])
+        if not user_info:
+            st.error("❌ Erreur lors de la récupération des informations utilisateur")
+            return False
+        
+        # Créer le token de session
+        session_token = create_session_token(user_info)
+        
+        # Stocker dans la session
+        st.session_state.auth_token = session_token
+        st.session_state.user_info = user_info
+        st.session_state.authenticated = True
+        
+        # Nettoyer les paramètres de l'URL
+        st.query_params.clear()
+        
+        return True
+    
+    return False
+
+def check_authentication():
+    """Vérifie l'authentification de l'utilisateur"""
+    # Vérifier d'abord le callback OAuth
+    if handle_oauth_callback():
+        st.rerun()
+    
+    # Vérifier le token de session existant
+    if 'auth_token' in st.session_state:
+        user_data = verify_session_token(st.session_state.auth_token)
+        if user_data:
+            st.session_state.user_info = user_data
+            st.session_state.authenticated = True
+            return True
+        else:
+            # Token expiré ou invalide
+            clear_session()
+    
+    return False
+
+def clear_session():
+    """Nettoie la session utilisateur"""
+    keys_to_remove = ['auth_token', 'user_info', 'authenticated', 'oauth_state']
+    for key in keys_to_remove:
+        if key in st.session_state:
+            del st.session_state[key]
+
+def show_login_page():
+    """Affiche la page de connexion avec Google OAuth"""
+    st.markdown("""
+    <div class="auth-container">
+        <h1>🎓 Assistant FPA</h1>
+        <h2>Ingénierie de Formation</h2>
+        <p style="font-size: 1.2rem; margin: 30px 0;">
+            Connectez-vous avec votre compte Google pour accéder à votre espace personnel de formation
+        </p>
+        
+        <div style="margin: 40px 0;">
+            <h3>✨ Fonctionnalités personnalisées :</h3>
+            <div style="text-align: left; display: inline-block; margin: 20px 0;">
+                <p>📚 • Base de connaissances commune en formation</p>
+                <p>🎯 • Scénarisation pédagogique intelligente</p>
+                <p>📄 • Votre propre RAG personnel</p>
+                <p>💾 • Sauvegarde automatique de vos documents</p>
+                <p>🔒 • Données privées et sécurisées</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔐 Se connecter avec Google", 
+                    type="primary", 
+                    use_container_width=True):
+            
+            # Générer un état sécurisé
+            state = generate_state()
+            st.session_state.oauth_state = state
+            
+            # Créer l'URL d'autorisation
+            oauth = GoogleOAuth(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)
+            auth_url = oauth.get_authorization_url(state)
+            
+            # Rediriger vers Google
+            st.markdown(f'<meta http-equiv="refresh" content="0; url={auth_url}">', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style="text-align: center; margin-top: 50px; color: #888;">
+        <p>🔒 <strong>Sécurité et confidentialité :</strong></p>
+        <p>• Vos données sont privées et sécurisées</p>
+        <p>• Chaque utilisateur a son propre espace isolé</p>
+        <p>• Aucune donnée partagée entre utilisateurs</p>
+        <p>• Authentification déléguée à Google (OAuth 2.0)</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+def get_user_identifier():
+    """Récupère l'identifiant utilisateur sécurisé"""
+    if st.session_state.get('authenticated') and 'user_info' in st.session_state:
+        return st.session_state.user_info['email']
+    return None
+
+# ==========================================
+# CLASSE EMBEDDINGS MISTRAL
+# ==========================================
+
 class MistralEmbeddings:
     """
     Wrapper LangChain pour Mistral Embed (1024 dims).
@@ -201,296 +454,17 @@ st.set_page_config(
 local_css()
 
 # ==========================================
-# GUIDE D'UTILISATION
+# VÉRIFICATION AUTH ET POINT D'ENTRÉE PRINCIPAL
 # ==========================================
 
-def show_usage_guide():
-    """Affiche le guide d'utilisation de l'assistant"""
-    st.markdown("""
-    <div class="guide-section">
-        <h2>📖 Guide d'utilisation de l'Assistant FPA</h2>
-        <p>Votre assistant intelligent pour l'ingénierie de formation professionnelle</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### 💬 **Onglet 1 : Assistant FPA**")
-    st.markdown("""
-    <div class="guide-section">
-        <p><strong>🎯 Objectif :</strong> Poser des questions sur la formation professionnelle et obtenir des réponses basées sur une base de connaissances spécialisée.</p>
-        
-        <p><strong>🔧 Comment utiliser :</strong></p>
-        <ul>
-            <li>Tapez votre question dans le champ de saisie en bas</li>
-            <li>L'assistant recherche dans la base de connaissances commune</li>
-            <li>Vous obtenez une réponse détaillée avec les sources</li>
-            <li>L'historique de conversation est conservé pour le contexte</li>
-        </ul>
-        
-        <p><strong>💡 Exemples de questions :</strong></p>
-        <ul>
-            <li>"Comment construire un plan de formation efficace ?"</li>
-            <li>"Quelles sont les méthodes pédagogiques actives ?"</li>
-            <li>"Comment évaluer les compétences des apprenants ?"</li>
-            <li>"Qu'est-ce que l'approche par compétences ?"</li>
-        </ul>
-        
-        <p><strong>🛠️ Outils supplémentaires :</strong></p>
-        <ul>
-            <li><strong>Exemple de plan :</strong> Génère un modèle de plan de formation</li>
-            <li><strong>Aide ingénierie :</strong> Conseils pour votre démarche pédagogique</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### 🎯 **Onglet 2 : Scénarisation**")
-    st.markdown("""
-    <div class="guide-section">
-        <p><strong>🎯 Objectif :</strong> Créer des scénarios pédagogiques détaillés et structurés selon l'Approche Par Compétences (APC).</p>
-        
-        <p><strong>🔧 Comment utiliser :</strong></p>
-        <ol>
-            <li><strong>Choisir le type d'entrée :</strong>
-                <ul>
-                    <li><strong>Programme :</strong> Décrivez le contenu à enseigner</li>
-                    <li><strong>Compétences :</strong> Listez les compétences à développer</li>
-                </ul>
-            </li>
-            <li><strong>Saisir le contenu :</strong> Décrivez en détail votre sujet de formation</li>
-            <li><strong>Définir la durée :</strong> Précisez les heures et minutes de formation</li>
-            <li><strong>Personnaliser les colonnes :</strong> Sélectionnez les colonnes du tableau de scénarisation</li>
-            <li><strong>Générer :</strong> L'IA crée un scénario pédagogique complet</li>
-        </ol>
-        
-        <p><strong>📋 Résultat obtenu :</strong></p>
-        <ul>
-            <li>Tableau de scénarisation détaillé avec timing précis</li>
-            <li>Objectifs formulés selon l'APC de TARDIF</li>
-            <li>Méthodes pédagogiques variées et adaptées</li>
-            <li>Activités formateur/apprenant détaillées</li>
-            <li>Ressources et modalités d'évaluation</li>
-        </ul>
-        
-        <p><strong>💡 Conseils :</strong></p>
-        <ul>
-            <li>Plus votre description est détaillée, meilleur sera le scénario</li>
-            <li>La durée sera respectée au minute près</li>
-            <li>Les compétences seront automatiquement reformulées selon l'APC</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### 📚 **Onglet 3 : Mon RAG Personnel**")
-    st.markdown("""
-    <div class="guide-section">
-        <p><strong>🎯 Objectif :</strong> Créer votre propre base de connaissances personnelle en ajoutant vos documents.</p>
-        
-        <p><strong>🔧 Comment utiliser :</strong></p>
-        <ol>
-            <li><strong>Upload de documents :</strong>
-                <ul>
-                    <li>Formats supportés : PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx)</li>
-                    <li>Plusieurs fichiers simultanément possibles</li>
-                    <li>Extraction automatique du texte</li>
-                </ul>
-            </li>
-            <li><strong>Vectorisation :</strong>
-                <ul>
-                    <li>Découpage intelligent en chunks de 1024 caractères</li>
-                    <li>Même modèle d'embedding que la base principale (Mistral)</li>
-                    <li>Compatibilité garantie</li>
-                </ul>
-            </li>
-            <li><strong>Recherche personnelle :</strong>
-                <ul>
-                    <li>Testez des requêtes dans vos documents</li>
-                    <li>Scores de pertinence affichés</li>
-                    <li>Extraits des documents sources</li>
-                </ul>
-            </li>
-        </ol>
-        
-        <p><strong>🔒 Confidentialité :</strong></p>
-        <ul>
-            <li><strong>Isolation totale :</strong> Vos documents restent privés</li>
-            <li><strong>Pas de partage :</strong> Aucun autre utilisateur n'y a accès</li>
-            <li><strong>Stockage sécurisé :</strong> Base vectorielle personnelle</li>
-        </ul>
-        
-        <p><strong>💡 Cas d'usage :</strong></p>
-        <ul>
-            <li>Ajouter vos supports de cours personnels</li>
-            <li>Intégrer des documents d'entreprise</li>
-            <li>Créer une base de ressources spécialisées</li>
-            <li>Rechercher rapidement dans vos archives</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
+# Vérification de l'authentification
+if not check_authentication():
+    show_login_page()
+    st.stop()
 
 # ==========================================
-# GESTION DES COLONNES DE SCÉNARISATION
+# FONCTIONS SYSTÈME (identiques à avant)
 # ==========================================
-
-def get_default_scenario_columns():
-    """Retourne les colonnes par défaut pour la scénarisation"""
-    return [
-        "DURÉE",
-        "HORAIRES", 
-        "CONTENU",
-        "OBJECTIFS PÉDAGOGIQUES",
-        "MÉTHODE",
-        "RÉPARTITION DES APPRENANTS",
-        "ACTIVITÉS - Formateur",
-        "ACTIVITÉS - Apprenants", 
-        "RESSOURCES et MATÉRIEL",
-        "ÉVALUATION - Type",
-        "ÉVALUATION - Sujet"
-    ]
-
-def column_selector_interface():
-    """Interface pour sélectionner les colonnes du tableau de scénarisation"""
-    st.markdown("""
-    <div class="scenario-card">
-        <h3>📋 Personnalisation du tableau de scénarisation</h3>
-        <p>Sélectionnez les colonnes que vous souhaitez inclure dans votre tableau de scénarisation :</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    default_columns = get_default_scenario_columns()
-    
-    # Initialiser les colonnes sélectionnées dans session_state si pas déjà fait
-    if 'selected_columns' not in st.session_state:
-        st.session_state.selected_columns = default_columns.copy()
-    
-    if 'custom_columns' not in st.session_state:
-        st.session_state.custom_columns = []
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.markdown("**📊 Colonnes disponibles :**")
-        
-        # Checkboxes pour les colonnes par défaut
-        selected_defaults = []
-        for col in default_columns:
-            if st.checkbox(col, value=col in st.session_state.selected_columns, key=f"default_{col}"):
-                selected_defaults.append(col)
-        
-        # Afficher les colonnes personnalisées ajoutées
-        if st.session_state.custom_columns:
-            st.markdown("**✨ Colonnes personnalisées :**")
-            selected_customs = []
-            for col in st.session_state.custom_columns:
-                if st.checkbox(col, value=col in st.session_state.selected_columns, key=f"custom_{col}"):
-                    selected_customs.append(col)
-        else:
-            selected_customs = []
-        
-        # Mettre à jour la sélection
-        st.session_state.selected_columns = selected_defaults + selected_customs
-    
-    with col2:
-        st.markdown("**➕ Ajouter une colonne personnalisée :**")
-        
-        new_column = st.text_input(
-            "Nom de la nouvelle colonne",
-            placeholder="Ex: MATÉRIEL SPÉCIFIQUE",
-            key="new_column_input"
-        )
-        
-        if st.button("➕ Ajouter", type="secondary", use_container_width=True):
-            if new_column and new_column not in default_columns and new_column not in st.session_state.custom_columns:
-                st.session_state.custom_columns.append(new_column)
-                st.session_state.selected_columns.append(new_column)
-                st.rerun()
-            elif new_column in default_columns or new_column in st.session_state.custom_columns:
-                st.warning("⚠️ Cette colonne existe déjà")
-        
-        # Bouton pour supprimer les colonnes personnalisées
-        if st.session_state.custom_columns:
-            st.markdown("**🗑️ Gérer les colonnes personnalisées :**")
-            col_to_remove = st.selectbox(
-                "Supprimer une colonne",
-                [""] + st.session_state.custom_columns,
-                key="remove_column_select"
-            )
-            
-            if st.button("🗑️ Supprimer", type="secondary", use_container_width=True):
-                if col_to_remove:
-                    st.session_state.custom_columns.remove(col_to_remove)
-                    if col_to_remove in st.session_state.selected_columns:
-                        st.session_state.selected_columns.remove(col_to_remove)
-                    st.rerun()
-        
-        # Bouton de reset
-        if st.button("🔄 Réinitialiser", type="secondary", use_container_width=True):
-            st.session_state.selected_columns = default_columns.copy()
-            st.session_state.custom_columns = []
-            st.rerun()
-    
-    # Afficher les colonnes sélectionnées
-    if st.session_state.selected_columns:
-        st.markdown("**✅ Colonnes sélectionnées pour le tableau :**")
-        cols_text = " | ".join(st.session_state.selected_columns)
-        st.info(f"📋 {cols_text}")
-        return st.session_state.selected_columns
-    else:
-        st.warning("⚠️ Veuillez sélectionner au moins une colonne")
-        return []
-
-def convert_columns_to_csv_structure(selected_columns):
-    """Convertit la liste des colonnes sélectionnées en structure CSV pour le prompt"""
-    # Créer l'en-tête CSV
-    header = "\t".join(selected_columns)
-    
-    # Créer une ligne d'exemple pour chaque colonne
-    example_row = []
-    for col in selected_columns:
-        if "DURÉE" in col.upper():
-            example_row.append("20 min")
-        elif "HORAIRES" in col.upper():
-            example_row.append("9h00-9h20")
-        elif "CONTENU" in col.upper():
-            example_row.append("Introduction à la formation")
-        elif "OBJECTIFS" in col.upper():
-            example_row.append("Identifier le niveau initial des participants")
-        elif "MÉTHODE" in col.upper():
-            example_row.append("transmissive")
-        elif "RÉPARTITION" in col.upper():
-            example_row.append("groupe entier")
-        elif "FORMATEUR" in col.upper() or ("ACTIVITÉS" in col.upper() and "FORMATEUR" in col.upper()):
-            example_row.append("présentation du formateur, du programme")
-        elif "APPRENANT" in col.upper() or ("ACTIVITÉS" in col.upper() and "APPRENANT" in col.upper()):
-            example_row.append("écoute active, questions")
-        elif "RESSOURCES" in col.upper() or "MATÉRIEL" in col.upper():
-            example_row.append("présentation PowerPoint, liste des participants")
-        elif "ÉVALUATION" in col.upper() and "TYPE" in col.upper():
-            example_row.append("diagnostique")
-        elif "ÉVALUATION" in col.upper() and "SUJET" in col.upper():
-            example_row.append("connaissances préalables")
-        elif "ÉVALUATION" in col.upper():
-            example_row.append("formative")
-        else:
-            example_row.append("À compléter")
-    
-    example_line = "\t".join(example_row)
-    
-    return f"{header}\n{example_line}"
-
-# ==========================================
-# GESTION DE L'UTILISATEUR (STREAMLIT CLOUD)
-# ==========================================
-
-def get_user_identifier():
-    """Récupère l'identifiant utilisateur de Streamlit Cloud"""
-    try:
-        # Utilise l'API native de Streamlit Cloud pour l'utilisateur connecté
-        if hasattr(st, 'user') and st.user is not None:
-            return st.user.email
-        else:
-            return None
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération de l'utilisateur: {e}")
-        return None
 
 def save_user_rag_state(user_id: str):
     """Sauvegarde l'état du RAG utilisateur (persistance automatique avec Chroma)"""
@@ -515,10 +489,6 @@ def load_user_rag_state(user_id: str):
     
     st.session_state[f'RAG_user_{user_id}'] = None
     return None
-
-# ==========================================
-# FONCTIONS ORIGINALES (CORRECTIONS APPLIQUÉES)
-# ==========================================
 
 def clean_corrupted_chromadb(db_path):
     """Nettoie automatiquement une base ChromaDB corrompue"""
@@ -716,56 +686,11 @@ def initialize_system():
         return vectorstore, llm, "success"
 
 # ==========================================
-# VÉRIFICATION AUTH ET POINT D'ENTRÉE PRINCIPAL
-# ==========================================
-
-# Vérification de l'authentification AVANT tout le reste
-if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
-    st.markdown("""
-    <div class="auth-container">
-        <h1>🎓 Assistant FPA</h1>
-        <h2>Ingénierie de Formation</h2>
-        <p style="font-size: 1.2rem; margin: 30px 0;">
-            Connectez-vous avec votre compte Google pour accéder à votre espace personnel de formation
-        </p>
-        
-        <div style="margin: 40px 0;">
-            <h3>✨ Fonctionnalités personnalisées :</h3>
-            <div style="text-align: left; display: inline-block; margin: 20px 0;">
-                <p>📚 • Base de connaissances commune en formation</p>
-                <p>🎯 • Scénarisation pédagogique intelligente</p>
-                <p>📄 • Votre propre RAG personnel</p>
-                <p>💾 • Sauvegarde automatique de vos documents</p>
-                <p>🔒 • Données privées et sécurisées</p>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔐 Se connecter avec Google", 
-                    type="primary", 
-                    use_container_width=True):
-            st.switch_page("login")
-    
-    st.markdown("""
-    <div style="text-align: center; margin-top: 50px; color: #888;">
-        <p>🔒 <strong>Sécurité et confidentialité :</strong></p>
-        <p>• Vos données sont privées et sécurisées</p>
-        <p>• Chaque utilisateur a son propre espace isolé</p>
-        <p>• Aucune donnée partagée entre utilisateurs</p>
-        <p>• Authentification déléguée à Google (OAuth 2.0)</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.stop()
-
-# ==========================================
 # UTILISATEUR CONNECTÉ - APPLICATION PRINCIPALE
 # ==========================================
 
 user_id = get_user_identifier()
+user_info = st.session_state.user_info
 
 # Initialisation du système (une seule fois)
 if 'initialized' not in st.session_state:
@@ -801,27 +726,143 @@ elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"
     st.stop()
 
 # ==========================================
-# PAGES PRINCIPALES
+# FONCTIONS DE PAGES (identiques à avant mais raccourcies)
 # ==========================================
+
+def get_default_scenario_columns():
+    """Retourne les colonnes par défaut pour la scénarisation"""
+    return [
+        "DURÉE", "HORAIRES", "CONTENU", "OBJECTIFS PÉDAGOGIQUES", "MÉTHODE",
+        "RÉPARTITION DES APPRENANTS", "ACTIVITÉS - Formateur", "ACTIVITÉS - Apprenants", 
+        "RESSOURCES et MATÉRIEL", "ÉVALUATION - Type", "ÉVALUATION - Sujet"
+    ]
+
+def column_selector_interface():
+    """Interface pour sélectionner les colonnes du tableau de scénarisation"""
+    st.markdown("""
+    <div class="scenario-card">
+        <h3>📋 Personnalisation du tableau de scénarisation</h3>
+        <p>Sélectionnez les colonnes que vous souhaitez inclure dans votre tableau de scénarisation :</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    default_columns = get_default_scenario_columns()
+    
+    if 'selected_columns' not in st.session_state:
+        st.session_state.selected_columns = default_columns.copy()
+    
+    if 'custom_columns' not in st.session_state:
+        st.session_state.custom_columns = []
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("**📊 Colonnes disponibles :**")
+        
+        selected_defaults = []
+        for col in default_columns:
+            if st.checkbox(col, value=col in st.session_state.selected_columns, key=f"default_{col}"):
+                selected_defaults.append(col)
+        
+        if st.session_state.custom_columns:
+            st.markdown("**✨ Colonnes personnalisées :**")
+            selected_customs = []
+            for col in st.session_state.custom_columns:
+                if st.checkbox(col, value=col in st.session_state.selected_columns, key=f"custom_{col}"):
+                    selected_customs.append(col)
+        else:
+            selected_customs = []
+        
+        st.session_state.selected_columns = selected_defaults + selected_customs
+    
+    with col2:
+        st.markdown("**➕ Ajouter une colonne personnalisée :**")
+        
+        new_column = st.text_input(
+            "Nom de la nouvelle colonne",
+            placeholder="Ex: MATÉRIEL SPÉCIFIQUE",
+            key="new_column_input"
+        )
+        
+        if st.button("➕ Ajouter", type="secondary", use_container_width=True):
+            if new_column and new_column not in default_columns and new_column not in st.session_state.custom_columns:
+                st.session_state.custom_columns.append(new_column)
+                st.session_state.selected_columns.append(new_column)
+                st.rerun()
+            elif new_column in default_columns or new_column in st.session_state.custom_columns:
+                st.warning("⚠️ Cette colonne existe déjà")
+        
+        if st.session_state.custom_columns:
+            st.markdown("**🗑️ Gérer les colonnes personnalisées :**")
+            col_to_remove = st.selectbox(
+                "Supprimer une colonne",
+                [""] + st.session_state.custom_columns,
+                key="remove_column_select"
+            )
+            
+            if st.button("🗑️ Supprimer", type="secondary", use_container_width=True):
+                if col_to_remove:
+                    st.session_state.custom_columns.remove(col_to_remove)
+                    if col_to_remove in st.session_state.selected_columns:
+                        st.session_state.selected_columns.remove(col_to_remove)
+                    st.rerun()
+        
+        if st.button("🔄 Réinitialiser", type="secondary", use_container_width=True):
+            st.session_state.selected_columns = default_columns.copy()
+            st.session_state.custom_columns = []
+            st.rerun()
+    
+    if st.session_state.selected_columns:
+        st.markdown("**✅ Colonnes sélectionnées pour le tableau :**")
+        cols_text = " | ".join(st.session_state.selected_columns)
+        st.info(f"📋 {cols_text}")
+        return st.session_state.selected_columns
+    else:
+        st.warning("⚠️ Veuillez sélectionner au moins une colonne")
+        return []
+
+def convert_columns_to_csv_structure(selected_columns):
+    """Convertit la liste des colonnes sélectionnées en structure CSV pour le prompt"""
+    header = "\t".join(selected_columns)
+    
+    example_row = []
+    for col in selected_columns:
+        if "DURÉE" in col.upper():
+            example_row.append("20 min")
+        elif "HORAIRES" in col.upper():
+            example_row.append("9h00-9h20")
+        elif "CONTENU" in col.upper():
+            example_row.append("Introduction à la formation")
+        elif "OBJECTIFS" in col.upper():
+            example_row.append("Identifier le niveau initial des participants")
+        elif "MÉTHODE" in col.upper():
+            example_row.append("transmissive")
+        elif "RÉPARTITION" in col.upper():
+            example_row.append("groupe entier")
+        elif "FORMATEUR" in col.upper() or ("ACTIVITÉS" in col.upper() and "FORMATEUR" in col.upper()):
+            example_row.append("présentation du formateur, du programme")
+        elif "APPRENANT" in col.upper() or ("ACTIVITÉS" in col.upper() and "APPRENANT" in col.upper()):
+            example_row.append("écoute active, questions")
+        elif "RESSOURCES" in col.upper() or "MATÉRIEL" in col.upper():
+            example_row.append("présentation PowerPoint, liste des participants")
+        elif "ÉVALUATION" in col.upper() and "TYPE" in col.upper():
+            example_row.append("diagnostique")
+        elif "ÉVALUATION" in col.upper() and "SUJET" in col.upper():
+            example_row.append("connaissances préalables")
+        elif "ÉVALUATION" in col.upper():
+            example_row.append("formative")
+        else:
+            example_row.append("À compléter")
+    
+    example_line = "\t".join(example_row)
+    return f"{header}\n{example_line}"
 
 def main_chat_page():
     """Page principale de chat avec l'assistant FPA"""
     
-    st.markdown(f"""
-    <div class="banner">
-        <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
-        <p>Votre partenaire intelligent pour la conception et l'amélioration de vos formations professionnelles</p>
-        <div class="user-info">
-            👤 Connecté en tant que : {st.user.name} ({st.user.email})
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Conteneur principal
     chat_container = st.container()
     
     with chat_container:
-        # Afficher l'historique de conversation
         for message in st.session_state.conversation_history:
             if message['role'] == 'user':
                 st.markdown(f"""
@@ -838,7 +879,6 @@ def main_chat_page():
                 </div>
                 """, unsafe_allow_html=True)
 
-        # Input pour le message de l'utilisateur
         if prompt := st.chat_input("Posez votre question sur la formation professionnelle"):
             st.session_state.conversation_history.append({
                 'role': 'user', 
@@ -896,13 +936,6 @@ def main_chat_page():
 def scenarisation_page():
     """Page de scénarisation de formation avec colonnes personnalisables"""
     
-    st.markdown("""
-    <div class="banner">
-        <h1>🎯 Scénarisation de Formation</h1>
-        <p>Créez des scénarios pédagogiques adaptés à vos objectifs</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
     left_col, right_col = st.columns([2, 1])
     
     with left_col:
@@ -945,7 +978,6 @@ def scenarisation_page():
         </div>
         """, unsafe_allow_html=True)
         
-        # Interface de sélection des colonnes
         selected_columns = column_selector_interface()
         
         if st.button("✨ Générer le scénario de formation", use_container_width=True):
@@ -985,10 +1017,8 @@ def scenarisation_page():
                     
                     st.write("📝 Génération du scénario pédagogique...")
                     
-                    # Conversion des colonnes sélectionnées en structure CSV
                     csv_structure = convert_columns_to_csv_structure(selected_columns)
                     
-                    # Appel modifié avec la structure CSV personnalisée
                     scenario = generate_structured_training_scenario(
                         st.session_state.llm,
                         st.session_state.vectorstore,
@@ -1035,6 +1065,22 @@ def scenarisation_page():
         """, unsafe_allow_html=True)
 
 # ==========================================
+# INTERFACE PRINCIPALE
+# ==========================================
+
+# Banner principal
+st.markdown(f"""
+<div class="banner">
+    <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
+    <p>Votre partenaire intelligent pour la conception et l'amélioration de vos formations professionnelles</p>
+    <div class="user-info">
+        👤 Connecté en tant que : {user_info['name']} ({user_info['email']})
+        <img src="{user_info.get('picture', '')}" width="30" height="30" style="border-radius: 50%; margin-left: 10px;" />
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================
 # SIDEBAR AVEC OUTILS ET DÉCONNEXION
 # ==========================================
 
@@ -1048,26 +1094,23 @@ with st.sidebar:
     
     # Informations utilisateur et déconnexion
     st.markdown("---")
-    st.markdown(f"**👤 Connecté :** {st.user.name}")
-    st.markdown(f"**📧 Email :** {st.user.email}")
+    
+    # Photo de profil
+    if user_info.get('picture'):
+        st.image(user_info['picture'], width=80)
+    
+    st.markdown(f"**👤 Connecté :** {user_info['name']}")
+    st.markdown(f"**📧 Email :** {user_info['email']}")
     
     if st.button("🚪 Se déconnecter", use_container_width=True):
         if user_id:
             save_user_rag_state(user_id)
-        # Correction pour Streamlit Cloud
+        clear_session()
         st.cache_data.clear()
         st.cache_resource.clear()
         st.rerun()
     
     st.markdown("---")
-    
-    # Guide d'utilisation
-    if st.button("📖 Guide d'utilisation", use_container_width=True, type="secondary"):
-        st.session_state.show_guide = not st.session_state.get('show_guide', False)
-    
-    if st.session_state.get('show_guide', False):
-        with st.expander("📖 Guide complet", expanded=True):
-            show_usage_guide()
     
     st.markdown("### 🛠️ Outils supplémentaires")
 
