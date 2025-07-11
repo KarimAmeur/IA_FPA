@@ -973,6 +973,41 @@ def local_css():
         .element-container:has(.stAlert) {{
             display: none;
         }}
+        @media (max-width: 768px) {{
+            /* Correction du padding */
+            .main .block-container {{
+                padding: 1rem !important;
+            }}
+            
+            /* Simplification des grilles */
+            .grid, .flex {{
+                display: block !important;
+            }}
+            
+            /* Taille de texte adaptative */
+            body, p, li, td {{
+                font-size: 14px !important;
+            }}
+            
+            /* Correction des largeurs */
+            .stButton>button, 
+            .stTextInput>div>div>input,
+            .stTextArea>div>div>textarea,
+            .stSelectbox>div>div>div {{
+                width: 100% !important;
+                font-size: 14px !important;
+            }}
+            
+            /* Masquer les éléments non essentiels */
+            .hero-decoration {{
+                display: none !important;
+            }}
+            
+            /* Ajustement des cartes */
+            .modern-card {{
+                padding: 12px !important;
+                margin: 8px 0 !important;
+            }}
     </style>
     """, unsafe_allow_html=True)
 

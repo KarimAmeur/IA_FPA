@@ -36,46 +36,34 @@ logging.basicConfig(
 
 # CORRECTION MOBILE : Fonction de nettoyage sécurisée
 def clean_text_for_mobile(text):
-    """Nettoie le texte pour éviter les erreurs regex sur mobile - VERSION RADICALE"""
+    """Version ultra-sécurisée pour mobile"""
     if not text or not isinstance(text, str):
         return ""
     
     try:
-        # Remplacer les caractères problématiques pour mobile
-        text = text.replace('\u00a0', ' ')  # Espace insécable
-        text = text.replace('\u2019', "'")  # Apostrophe courbe
-        text = text.replace('\u201c', '"')  # Guillemet ouvrant
-        text = text.replace('\u201d', '"')  # Guillemet fermant
-        text = text.replace('\u2013', '-')  # Tiret demi-cadratin
-        text = text.replace('\u2014', '-')  # Tiret cadratin
-        
-        # CORRECTION RADICALE : Supprimer TOUS les liens et URLs
-        # Ceci élimine la source des erreurs transformGfmAutolinkLiterals
+        # 1. Supprimer tous les liens et emails
         words = text.split()
         cleaned_words = []
         for word in words:
-            # Supprimer complètement les URLs au lieu de les remplacer
-            if any(url_start in word.lower() for url_start in ['http://', 'https://', 'www.', 'ftp://']):
-                continue  # Ignorer complètement les URLs
-            elif '@' in word and '.' in word:
-                continue  # Ignorer les emails aussi
-            else:
-                cleaned_words.append(word)
+            if any(s in word.lower() for s in ['http:', 'https:', 'www.', '@']):
+                continue
+            cleaned_words.append(word)
         text = ' '.join(cleaned_words)
         
-        # Nettoyer les caractères de contrôle
-        control_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f'
-        for char in control_chars:
-            text = text.replace(char, '')
-        
-        # Supprimer les doubles espaces
-        while '  ' in text:
-            text = text.replace('  ', ' ')
+        # 2. Remplacer les caractères problématiques
+        replacements = {
+            '\u00a0': ' ', '\u2019': "'", '\u201c': '"', 
+            '\u201d': '"', '\u2013': '-', '\u2014': '-'
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+            
+        # 3. Supprimer les caractères de contrôle
+        text = ''.join(c for c in text if ord(c) >= 32)
         
         return text.strip()
     except Exception:
-        # En cas d'erreur, retourner le texte original sans modification
-        return str(text)
+        return str(text)[:500]  # Limiter en cas d'erreur
 
 def extract_query_essence(query: str) -> str:
     """Version simplifiée SANS spacy - Compatible Streamlit Cloud ET Mobile"""
