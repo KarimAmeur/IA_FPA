@@ -4,7 +4,6 @@ import tempfile
 import time
 import logging
 import re
-import html  # ✅ AJOUT POUR LA SÉCURITÉ
 from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
@@ -36,15 +35,14 @@ try:
 except:
     MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
 
-# ✅ FONCTION DE NETTOYAGE ULTRA-SIMPLE ET SÉCURISÉE
-def safe_clean_text(text):
-    """Nettoie le texte de manière ultra-sécurisée pour éviter les erreurs JavaScript"""
+# CORRECTION MOBILE : Fonction de nettoyage sécurisée
+def clean_text_for_mobile(text):
+    """Nettoie le texte pour éviter les erreurs regex sur mobile"""
     if not text or not isinstance(text, str):
         return ""
     
     try:
-        # Conversion simple sans regex complexe
-        # Remplacer seulement les caractères les plus problématiques
+        # Remplacer les caractères problématiques pour mobile
         text = text.replace('\u00a0', ' ')  # Espace insécable
         text = text.replace('\u2019', "'")  # Apostrophe courbe
         text = text.replace('\u201c', '"')  # Guillemet ouvrant
@@ -52,7 +50,7 @@ def safe_clean_text(text):
         text = text.replace('\u2013', '-')  # Tiret demi-cadratin
         text = text.replace('\u2014', '-')  # Tiret cadratin
         
-        # Supprimer les URLs de manière simple SANS regex complexe
+        # CORRECTION MOBILE : Nettoyer les URLs SANS regex complexe
         if 'http' in text:
             words = text.split()
             cleaned_words = []
@@ -63,18 +61,15 @@ def safe_clean_text(text):
                     cleaned_words.append(word)
             text = ' '.join(cleaned_words)
         
-        # Supprimer les caractères de contrôle de manière simple
+        # CORRECTION MOBILE : Nettoyer les caractères de contrôle SANS regex complexe
         control_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f'
         for char in control_chars:
             text = text.replace(char, '')
         
-        # Échapper le contenu pour éviter les problèmes HTML
-        text = html.escape(text)
-        
-        return text.strip()
+        return text
     except Exception:
-        # En cas d'erreur, retourner une version échappée simple
-        return html.escape(str(text)[:500])
+        # En cas d'erreur, retourner le texte original sans modification
+        return str(text)
 
 class MistralEmbeddings:
     """
@@ -91,8 +86,8 @@ class MistralEmbeddings:
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i+batch_size]
             try:
-                # ✅ NETTOYAGE SÉCURISÉ des textes avant embedding
-                clean_batch = [safe_clean_text(text) for text in batch]
+                # CORRECTION MOBILE : Nettoyer les textes avant embedding
+                clean_batch = [clean_text_for_mobile(text) for text in batch]
                 resp = self.client.embeddings(model=self.model, input=clean_batch)
                 embeddings.extend([d.embedding for d in resp.data])
             except Exception as e:
@@ -102,8 +97,8 @@ class MistralEmbeddings:
 
     def embed_query(self, text: str) -> List[float]:
         try:
-            # ✅ NETTOYAGE SÉCURISÉ de la requête avant embedding
-            clean_text = safe_clean_text(text)
+            # CORRECTION MOBILE : Nettoyer la requête avant embedding
+            clean_text = clean_text_for_mobile(text)
             resp = self.client.embeddings(model=self.model, input=[clean_text])
             return resp.data[0].embedding
         except Exception as e:
@@ -133,8 +128,8 @@ def extract_text_from_pdf(file_path: str) -> str:
             for page in reader.pages:
                 text = page.extract_text()
                 if text:
-                    # ✅ NETTOYAGE SÉCURISÉ du texte extrait
-                    clean_text = safe_clean_text(text)
+                    # CORRECTION MOBILE : Nettoyer le texte extrait
+                    clean_text = clean_text_for_mobile(text)
                     full_text += clean_text + "\n\n"
             return full_text
     except Exception as e:
@@ -148,8 +143,8 @@ def extract_text_from_docx(file_path: str) -> str:
         texts = []
         for paragraph in doc.paragraphs:
             if paragraph.text:
-                # ✅ NETTOYAGE SÉCURISÉ de chaque paragraphe
-                clean_para = safe_clean_text(paragraph.text)
+                # CORRECTION MOBILE : Nettoyer chaque paragraphe
+                clean_para = clean_text_for_mobile(paragraph.text)
                 texts.append(clean_para)
         return "\n".join(texts)
     except Exception as e:
@@ -170,8 +165,8 @@ def extract_text_from_pptx(file_path: str) -> str:
             if slide.shapes.title and slide.shapes.title.has_text_frame:
                 title_text = slide.shapes.title.text
                 if title_text.strip():
-                    # ✅ NETTOYAGE SÉCURISÉ du titre
-                    clean_title = safe_clean_text(title_text)
+                    # CORRECTION MOBILE : Nettoyer le titre
+                    clean_title = clean_text_for_mobile(title_text)
                     slide_text.append(f"Titre: {clean_title}")
             
             # Extraire le texte de toutes les formes
@@ -183,8 +178,8 @@ def extract_text_from_pptx(file_path: str) -> str:
                     text_content = shape.text_frame.text
                 
                 if text_content:
-                    # ✅ NETTOYAGE SÉCURISÉ du texte de la forme
-                    clean_content = safe_clean_text(text_content)
+                    # CORRECTION MOBILE : Nettoyer le texte de la forme
+                    clean_content = clean_text_for_mobile(text_content)
                     slide_text.append(clean_content)
             
             # Ajouter le texte de la diapositive au texte global
@@ -213,8 +208,8 @@ def extract_text_from_xlsx(file_path: str) -> str:
             for row in df.values:
                 row_text = " ".join(str(val) for val in row if pd.notna(val))
                 if row_text.strip():
-                    # ✅ NETTOYAGE SÉCURISÉ de chaque ligne
-                    clean_row = safe_clean_text(row_text)
+                    # CORRECTION MOBILE : Nettoyer chaque ligne
+                    clean_row = clean_text_for_mobile(row_text)
                     sheet_texts.append(clean_row)
 
             sheet_text = "\n".join(sheet_texts)
@@ -321,8 +316,8 @@ def user_rag_page():
                             st.warning(f"Aucun texte extrait de {os.path.basename(file_path)}")
                             continue
                         
-                        # ✅ NETTOYAGE SÉCURISÉ du texte extrait
-                        text = safe_clean_text(text)
+                        # CORRECTION MOBILE : Nettoyer le texte extrait
+                        text = clean_text_for_mobile(text)
                         
                         # Limitation de taille comme dans rag_formation.py
                         if len(text) > 500_000:
@@ -349,8 +344,8 @@ def user_rag_page():
                             if len(chunk.strip()) < 100:  # Même filtrage que rag_formation.py
                                 continue
                             
-                            # ✅ NETTOYAGE SÉCURISÉ de chaque chunk
-                            clean_chunk = safe_clean_text(chunk)
+                            # CORRECTION MOBILE : Nettoyer chaque chunk
+                            clean_chunk = clean_text_for_mobile(chunk)
                             
                             documents.append(Document(
                                 page_content=clean_chunk,
@@ -474,9 +469,7 @@ def user_rag_page():
                 # Afficher la liste des fichiers
                 st.markdown("<p><strong>📁 Fichiers vectorisés:</strong></p>", unsafe_allow_html=True)
                 for filename, count in sources.items():
-                    # ✅ NETTOYAGE SÉCURISÉ du nom de fichier
-                    safe_filename = safe_clean_text(filename)
-                    st.markdown(f"- **{safe_filename}**: {count} chunks")
+                    st.markdown(f"- **{filename}**: {count} chunks")
                 
                 # Option pour tester le RAG
                 st.markdown("""
@@ -495,8 +488,8 @@ def user_rag_page():
                     # Effectuer la recherche
                     with st.spinner("Recherche en cours..."):
                         try:
-                            # ✅ NETTOYAGE SÉCURISÉ de la requête de test
-                            clean_query = safe_clean_text(test_query)
+                            # CORRECTION MOBILE : Nettoyer la requête de test
+                            clean_query = clean_text_for_mobile(test_query)
                             
                             # Effectuer la recherche similaire
                             results = st.session_state.RAG_user.similarity_search_with_score(
@@ -517,9 +510,9 @@ def user_rag_page():
                                         'xls': '📈'
                                     }.get(file_type, '📁')
                                     
-                                    # ✅ NETTOYAGE SÉCURISÉ du contenu affiché
-                                    clean_content = safe_clean_text(doc.page_content)
-                                    clean_filename = safe_clean_text(doc.metadata.get('filename', 'Inconnu'))
+                                    # CORRECTION MOBILE : Nettoyer le contenu affiché
+                                    clean_content = clean_text_for_mobile(doc.page_content)
+                                    clean_filename = clean_text_for_mobile(doc.metadata.get('filename', 'Inconnu'))
                                     
                                     with st.expander(f"{file_emoji} Résultat {i} - Score: {score:.4f} - Source: {clean_filename}"):
                                         st.markdown(f"**Extrait du document:**\n\n{clean_content}")

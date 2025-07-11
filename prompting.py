@@ -4,7 +4,6 @@ import csv
 from io import StringIO
 import numpy as np
 import re
-import html  # ✅ AJOUT POUR LA SÉCURITÉ
 # import spacy  # SUPPRIMÉ pour Streamlit Cloud
 from typing import List, Dict, Any
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -35,15 +34,14 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# ✅ FONCTION DE NETTOYAGE ULTRA-SIMPLE ET SÉCURISÉE
-def safe_clean_text(text):
-    """Version ultra-sécurisée pour éviter les erreurs JavaScript côté client"""
+# CORRECTION MOBILE : Fonction de nettoyage sécurisée
+def clean_text_for_mobile(text):
+    """Nettoie le texte pour éviter les erreurs regex sur mobile - VERSION RADICALE"""
     if not text or not isinstance(text, str):
         return ""
     
     try:
-        # Conversion simple sans regex complexe
-        # Remplacer seulement les caractères les plus problématiques
+        # Remplacer les caractères problématiques pour mobile
         text = text.replace('\u00a0', ' ')  # Espace insécable
         text = text.replace('\u2019', "'")  # Apostrophe courbe
         text = text.replace('\u201c', '"')  # Guillemet ouvrant
@@ -51,24 +49,39 @@ def safe_clean_text(text):
         text = text.replace('\u2013', '-')  # Tiret demi-cadratin
         text = text.replace('\u2014', '-')  # Tiret cadratin
         
-        # Supprimer les caractères de contrôle les plus problématiques
-        text = text.replace('\x00', '')
-        text = text.replace('\x0b', '')
-        text = text.replace('\x0c', '')
+        # CORRECTION RADICALE : Supprimer TOUS les liens et URLs
+        # Ceci élimine la source des erreurs transformGfmAutolinkLiterals
+        words = text.split()
+        cleaned_words = []
+        for word in words:
+            # Supprimer complètement les URLs au lieu de les remplacer
+            if any(url_start in word.lower() for url_start in ['http://', 'https://', 'www.', 'ftp://']):
+                continue  # Ignorer complètement les URLs
+            elif '@' in word and '.' in word:
+                continue  # Ignorer les emails aussi
+            else:
+                cleaned_words.append(word)
+        text = ' '.join(cleaned_words)
         
-        # Échapper le contenu pour éviter les problèmes HTML
-        text = html.escape(text)
+        # Nettoyer les caractères de contrôle
+        control_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f'
+        for char in control_chars:
+            text = text.replace(char, '')
+        
+        # Supprimer les doubles espaces
+        while '  ' in text:
+            text = text.replace('  ', ' ')
         
         return text.strip()
     except Exception:
-        # En cas d'erreur, retourner une version échappée simple
-        return html.escape(str(text)[:500])
+        # En cas d'erreur, retourner le texte original sans modification
+        return str(text)
 
 def extract_query_essence(query: str) -> str:
     """Version simplifiée SANS spacy - Compatible Streamlit Cloud ET Mobile"""
     try:
-        # ✅ NETTOYAGE SÉCURISÉ
-        query = safe_clean_text(query)
+        # CORRECTION MOBILE : Nettoyer d'abord le texte
+        query = clean_text_for_mobile(query)
         
         # Mots vides français simples (sans spacy)
         stop_words = {
@@ -85,7 +98,7 @@ def extract_query_essence(query: str) -> str:
         # Filtrer les mots vides et garder les mots importants
         filtered_words = []
         for word in words:
-            # Nettoyage simple sans regex
+            # CORRECTION MOBILE : Nettoyage simple sans regex
             clean_word = word.strip('.,?!:;')
             if len(clean_word) > 2 and clean_word.lower() not in stop_words:
                 filtered_words.append(clean_word)
@@ -104,7 +117,7 @@ def extract_query_essence(query: str) -> str:
         
     except Exception as e:
         print(f"Erreur lors de l'extraction (version simple): {e}")
-        return safe_clean_text(query)
+        return query
 
 
 def retrieve_documents(
@@ -119,8 +132,8 @@ def retrieve_documents(
         return []
 
     try:
-        # ✅ NETTOYAGE SÉCURISÉ
-        processed_query = safe_clean_text(query)
+        # CORRECTION MOBILE : Nettoyer la requête
+        processed_query = clean_text_for_mobile(query)
         processed_query = extract_query_essence(processed_query)
         
         results = vectorstore.similarity_search_with_score(
@@ -138,9 +151,9 @@ def retrieve_documents(
             
         retrieved_docs = []
         for doc, raw_score in filtered_results:
-            # ✅ NETTOYAGE SÉCURISÉ du contenu des documents
-            clean_content = safe_clean_text(doc.page_content)
-            clean_title = safe_clean_text(doc.metadata.get('titre', 'Document sans titre'))
+            # CORRECTION MOBILE : Nettoyer le contenu des documents
+            clean_content = clean_text_for_mobile(doc.page_content)
+            clean_title = clean_text_for_mobile(doc.metadata.get('titre', 'Document sans titre'))
             
             retrieved_docs.append({
                 'content': clean_content,
@@ -190,8 +203,8 @@ def generate_context_response(
     if not retrieved_docs:
         return "Je n'ai pas trouvé de documents pertinents pour répondre à votre question. Pourriez-vous reformuler ou préciser votre demande?"
     
-    # ✅ NETTOYAGE SÉCURISÉ de la requête
-    clean_query = safe_clean_text(query)
+    # CORRECTION MOBILE : Nettoyer la requête
+    clean_query = clean_text_for_mobile(query)
     
     context = ""
     
@@ -231,8 +244,8 @@ def generate_context_response(
         history_text = "HISTORIQUE DE LA CONVERSATION:\n"
         for i, msg in enumerate(conversation_history[-5:]):
             role = "Utilisateur" if msg["role"] == "user" else "Assistant"
-            # ✅ NETTOYAGE SÉCURISÉ du contenu de l'historique
-            clean_content = safe_clean_text(msg['content'])
+            # CORRECTION MOBILE : Nettoyer le contenu de l'historique
+            clean_content = clean_text_for_mobile(msg['content'])
             history_text += f"[{i+1}] {role}: {clean_content}\n\n"
     
     full_prompt = f"""
@@ -277,8 +290,8 @@ def generate_context_response(
         else:
             result = str(response)
         
-        # ✅ NETTOYAGE SÉCURISÉ de la réponse
-        result = safe_clean_text(result)
+        # CORRECTION MOBILE : Nettoyer la réponse
+        result = clean_text_for_mobile(result)
         
         logging.info(f"Réponse générée avec succès ({len(result)} caractères)")
         return result
@@ -312,8 +325,8 @@ def generate_example_training_plan(llm) -> str:
         else:
             result = str(response)
         
-        # ✅ NETTOYAGE SÉCURISÉ de la réponse
-        return safe_clean_text(result)
+        # CORRECTION MOBILE : Nettoyer la réponse
+        return clean_text_for_mobile(result)
     except Exception as e:
         logging.error(f"Erreur lors de la génération du plan de formation: {e}")
         return "Impossible de générer un exemple de plan de formation."
@@ -337,8 +350,8 @@ def generate_pedagogical_engineering_advice(llm) -> str:
         else:
             result = str(response)
         
-        # ✅ NETTOYAGE SÉCURISÉ de la réponse
-        return safe_clean_text(result)
+        # CORRECTION MOBILE : Nettoyer la réponse
+        return clean_text_for_mobile(result)
     except Exception as e:
         logging.error(f"Erreur lors de la génération des conseils d'ingénierie: {e}")
         return "Impossible de générer des conseils d'ingénierie pédagogique."
@@ -350,8 +363,8 @@ def reformulate_competencies_apc(
 ) -> str:
     """Reformule les compétences selon l'Approche Par Compétences (APC) - VERSION MOBILE SAFE"""
     
-    # ✅ NETTOYAGE SÉCURISÉ des compétences initiales
-    clean_competencies = safe_clean_text(initial_competencies)
+    # CORRECTION MOBILE : Nettoyer les compétences initiales
+    clean_competencies = clean_text_for_mobile(initial_competencies)
     
     retrieved_docs = retrieve_documents(
         vectorstore, 
@@ -395,8 +408,8 @@ def reformulate_competencies_apc(
         else:
             result = str(response)
         
-        # ✅ NETTOYAGE SÉCURISÉ de la réponse
-        return safe_clean_text(result)
+        # CORRECTION MOBILE : Nettoyer la réponse
+        return clean_text_for_mobile(result)
     except Exception as e:
         logging.error(f"Erreur lors de la reformulation des compétences: {e}")
         return "Impossible de reformuler les compétences selon l'APC."
@@ -404,8 +417,8 @@ def reformulate_competencies_apc(
 def generate_structured_training_scenario(llm, vectorstore, input_data, input_type, duration_minutes=210, custom_csv_structure=None):
     """Génère un scénario de formation structuré - VERSION MOBILE SAFE"""
     
-    # ✅ NETTOYAGE SÉCURISÉ des données d'entrée
-    clean_input_data = safe_clean_text(input_data)
+    # CORRECTION MOBILE : Nettoyer les données d'entrée
+    clean_input_data = clean_text_for_mobile(input_data)
     
     # Structure par défaut si aucune structure personnalisée n'est fournie
     default_csv_structure = """DURÉE\tHORAIRES\tCONTENU\tOBJECTIFS PÉDAGOGIQUES\tMETHODE\tREPARTITION DES APPRENANTS\tACTIVITES\t\tRESSOURCES et MATERIEL\tEVALUATION\t
@@ -523,8 +536,8 @@ def generate_structured_training_scenario(llm, vectorstore, input_data, input_ty
         else:
             result = str(response)
         
-        # ✅ NETTOYAGE SÉCURISÉ de la réponse
-        return safe_clean_text(result)
+        # CORRECTION MOBILE : Nettoyer la réponse
+        return clean_text_for_mobile(result)
     except Exception as e:
         logging.error(f"Erreur lors de la génération du scénario de formation: {e}")
         return "Impossible de générer un scénario de formation."
