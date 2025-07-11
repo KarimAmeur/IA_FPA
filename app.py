@@ -113,10 +113,40 @@ def local_css():
         
         .stApp {{
             background: {COLORS["background"]};
+            background-image: 
+                radial-gradient(circle at 10% 90%, rgba(29, 91, 104, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 90% 10%, rgba(148, 183, 189, 0.05) 0%, transparent 50%),
+                url('./Pictures/18-cloud.svg'),
+                url('./Pictures/23-construire-sa-formation.svg');
+            background-size: 
+                100% 100%,
+                100% 100%,
+                300px 300px,
+                250px 250px;
+            background-position: 
+                center center,
+                center center,
+                -50px bottom,
+                calc(100% + 50px) top;
+            background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+            background-attachment: fixed, fixed, fixed, fixed;
             color: {COLORS["text_primary"]};
             font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
             font-weight: 400;
             line-height: 1.6;
+        }}
+        
+        /* Overlay subtil pour améliorer la lisibilité */
+        .stApp::before {{
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: -1;
+            pointer-events: none;
         }}
         
         /* TYPOGRAPHIE SELON CHARTE EDSET */
@@ -211,21 +241,47 @@ def local_css():
             color: {COLORS["primary"]};
         }}
         
-        /* SIDEBAR MODERNE */
+        /* SIDEBAR MODERNE AVEC TEXTE BLANC */
         [data-testid="stSidebar"] {{
-            background: {COLORS["surface"]};
-            border-right: 1px solid {COLORS["border_light"]};
-            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.04);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
+            border-right: 1px solid {COLORS["border"]};
+            box-shadow: 4px 0 20px rgba(29, 91, 104, 0.2);
+            color: white !important;
         }}
         
         [data-testid="stSidebar"] * {{
-            color: {COLORS["text_primary"]} !important;
+            color: white !important;
         }}
         
         [data-testid="stSidebar"] h1, 
         [data-testid="stSidebar"] h2, 
         [data-testid="stSidebar"] h3 {{
-            color: {COLORS["text_primary"]} !important;
+            color: white !important;
+        }}
+        
+        [data-testid="stSidebar"] .stButton>button {{
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            backdrop-filter: blur(10px);
+        }}
+        
+        [data-testid="stSidebar"] .stButton>button:hover {{
+            background: rgba(255, 255, 255, 0.25) !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.5) !important;
+        }}
+        
+        [data-testid="stSidebar"] .stExpander {{
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 8px !important;
+        }}
+        
+        [data-testid="stSidebar"] .stSelectbox>div>div>div {{
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
         }}
         
         /* VOS VRAIES IMAGES SVG DU DOSSIER PICTURES */
@@ -397,16 +453,29 @@ def local_css():
             background-image: url('./Pictures/reseaux.svg');
         }}
         
-        /* ICÔNES PLUS GRANDES POUR SECTIONS */
-        .section-icon {{
-            width: 40px;
-            height: 40px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            display: inline-block;
-            margin-right: 12px;
-            vertical-align: middle;
+        /* CORRECTION DES PICTOS - REMPLACEMENT PAR VOS VRAIES IMAGES */
+        .icon-assistant {{
+            background-image: url('./Pictures/formation-formateur-diplome.svg');
+        }}
+        
+        .icon-scenario {{
+            background-image: url('./Pictures/checklist.svg');
+        }}
+        
+        .icon-documents {{
+            background-image: url('./Pictures/cloud-dossier-02.svg');
+        }}
+        
+        .icon-lightbulb {{
+            background-image: url('./Pictures/ampoule.svg');
+        }}
+        
+        .icon-gear {{
+            background-image: url('./Pictures/engrenages.svg');
+        }}
+        
+        .icon-time {{
+            background-image: url('./Pictures/duree-montre.svg');
         }}
         
         /* ANIMATIONS */
@@ -772,7 +841,7 @@ def local_css():
             box-shadow: 0 2px 8px rgba(230, 82, 94, 0.2);
         }}
         
-        /* TABS AVEC COULEURS EDSET */
+        /* TABS AVEC TEXTE BLANC SUR FOND COLORÉ */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 8px;
             background: {COLORS["accent_light"]};
@@ -796,6 +865,34 @@ def local_css():
             background: {COLORS["primary"]} !important;
             color: white !important;
             box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
+        }}
+        
+        /* STATUS ET PROGRESS AVEC TEXTE BLANC */
+        .stStatus {{
+            background: {COLORS["primary"]} !important;
+        }}
+        
+        .stStatus * {{
+            color: white !important;
+        }}
+        
+        /* MESSAGES D'ALERTE AVEC TEXTE BLANC */
+        .stSuccess {{
+            background: {COLORS["accent"]} !important;
+            color: white !important;
+            border: 1px solid {COLORS["accent"]} !important;
+        }}
+        
+        .stInfo {{
+            background: {COLORS["primary"]} !important;
+            color: white !important;
+            border: 1px solid {COLORS["primary"]} !important;
+        }}
+        
+        .stWarning {{
+            background: {COLORS["secondary"]} !important;
+            color: white !important;
+            border: 1px solid {COLORS["secondary"]} !important;
         }}
         
         /* SCROLLBAR AVEC COULEURS EDSET */
