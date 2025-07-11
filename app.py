@@ -79,7 +79,7 @@ class MistralEmbeddings:
             st.error(f"Erreur embedding requête: {e}")
             return [0.0]*1024
 
-# Définition des couleurs - CHARTE GRAPHIQUE EDSET
+# Définition des couleurs - CHARTE GRAPHIQUE EDSET CORRIGÉE
 COLORS = {
     "primary": "#1D5B68",        # Bleu principal Edset
     "secondary": "#E6525E",      # Rouge accent Edset  
@@ -88,10 +88,10 @@ COLORS = {
     "dark_gray": "#3F3F3F",      # Gris foncé Edset
     "light_gray": "#F5F5F6",     # Gris clair Edset
     "background": "#FFFFFF",     # Fond blanc (charte Edset)
-    "text": "#3F3F3F"            # Texte gris foncé (charte Edset)
+    "text": "#2E2E2E"            # CORRECTION: Texte gris plus foncé pour meilleure lisibilité
 }
 
-# Configuration CSS personnalisée - CHARTE GRAPHIQUE EDSET
+# Configuration CSS personnalisée - CHARTE GRAPHIQUE EDSET CORRIGÉE
 def local_css():
     st.markdown(f"""
     <style>
@@ -100,13 +100,25 @@ def local_css():
         
         .stApp {{
             background-color: {COLORS["background"]};
-            color: {COLORS["text"]};
+            color: {COLORS["text"]} !important;  /* CORRECTION: Force la couleur du texte */
             font-family: 'Roboto', sans-serif;
+        }}
+        
+        /* CORRECTION: Force la couleur du texte partout */
+        .stApp, .stApp * {{
+            color: {COLORS["text"]} !important;
+        }}
+        
+        /* EXCEPTIONS pour les éléments qui doivent garder leurs couleurs */
+        .banner *, .user-info *, .auth-container *, 
+        .stButton>button *, .badge *, 
+        .stTabs [aria-selected="true"] * {{
+            color: inherit !important;
         }}
         
         /* TITRES : Roboto Medium (selon charte Edset) */
         h1, h2, h3 {{
-            color: {COLORS["primary"]};
+            color: {COLORS["primary"]} !important;
             font-family: 'Roboto', sans-serif;
             font-weight: 500;
             line-height: 1.2;
@@ -129,9 +141,9 @@ def local_css():
         
         /* INPUTS : Style Edset */
         .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
-            background-color: {COLORS["background"]};
-            color: {COLORS["text"]};
-            border: 2px solid {COLORS["very_light_blue"]};
+            background-color: {COLORS["background"]} !important;
+            color: {COLORS["text"]} !important;
+            border: 2px solid {COLORS["very_light_blue"]} !important;
             border-radius: 8px;
             font-family: 'Roboto', sans-serif;
             font-weight: 300;
@@ -139,23 +151,23 @@ def local_css():
         }}
         
         .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {{
-            border-color: {COLORS["primary"]};
+            border-color: {COLORS["primary"]} !important;
             box-shadow: 0 0 0 2px {COLORS["light_blue"]}40;
         }}
         
         .stSelectbox>div>div>div {{
-            background-color: {COLORS["background"]};
-            color: {COLORS["text"]};
-            border: 2px solid {COLORS["very_light_blue"]};
+            background-color: {COLORS["background"]} !important;
+            color: {COLORS["text"]} !important;
+            border: 2px solid {COLORS["very_light_blue"]} !important;
             border-radius: 8px;
             font-family: 'Roboto', sans-serif;
         }}
         
         /* BOUTONS : Style Edset moderne */
         .stButton>button {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
-            color: white;
-            border: none;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%) !important;
+            color: white !important;
+            border: none !important;
             border-radius: 10px;
             padding: 12px 24px;
             font-family: 'Roboto', sans-serif;
@@ -168,7 +180,7 @@ def local_css():
         .stButton>button:hover {{
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(29, 91, 104, 0.3);
-            background: linear-gradient(135deg, {COLORS["light_blue"]} 0%, {COLORS["primary"]} 100%);
+            background: linear-gradient(135deg, {COLORS["light_blue"]} 0%, {COLORS["primary"]} 100%) !important;
         }}
         
         /* SIDEBAR : Style Edset */
@@ -178,13 +190,17 @@ def local_css():
         }}
         
         [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {{
-            color: {COLORS["primary"]};
+            color: {COLORS["primary"]} !important;
+        }}
+        
+        [data-testid="stSidebar"] * {{
+            color: {COLORS["text"]} !important;
         }}
         
         /* CARDS : Style Edset moderne */
         .scenario-card, .user-message, .assistant-message {{
-            background: {COLORS["background"]};
-            color: {COLORS["text"]};
+            background: {COLORS["background"]} !important;
+            color: {COLORS["text"]} !important;
             padding: 20px;
             border-radius: 15px;
             border-left: 5px solid {COLORS["secondary"]};
@@ -197,27 +213,28 @@ def local_css():
         
         .user-message {{
             border-left-color: {COLORS["primary"]};
-            background: linear-gradient(135deg, {COLORS["very_light_blue"]}20 0%, {COLORS["background"]} 100%);
+            background: linear-gradient(135deg, {COLORS["very_light_blue"]}20 0%, {COLORS["background"]} 100%) !important;
         }}
         
         .assistant-message {{
             border-left-color: {COLORS["secondary"]};
-            background: linear-gradient(135deg, {COLORS["light_gray"]}40 0%, {COLORS["background"]} 100%);
+            background: linear-gradient(135deg, {COLORS["light_gray"]}40 0%, {COLORS["background"]} 100%) !important;
         }}
         
         .upload-box {{
-            background: linear-gradient(135deg, {COLORS["very_light_blue"]}30 0%, {COLORS["background"]} 100%);
+            background: linear-gradient(135deg, {COLORS["very_light_blue"]}30 0%, {COLORS["background"]} 100%) !important;
             border: 2px dashed {COLORS["light_blue"]};
             border-radius: 15px;
             padding: 30px;
             text-align: center;
             margin: 20px 0;
             transition: all 0.3s ease;
+            color: {COLORS["text"]} !important;
         }}
         
         .upload-box:hover {{
             border-color: {COLORS["primary"]};
-            background: linear-gradient(135deg, {COLORS["very_light_blue"]}50 0%, {COLORS["background"]} 100%);
+            background: linear-gradient(135deg, {COLORS["very_light_blue"]}50 0%, {COLORS["background"]} 100%) !important;
         }}
         
         /* AUTH CONTAINER : Style Edset */
@@ -225,16 +242,16 @@ def local_css():
             max-width: 500px;
             margin: 50px auto;
             padding: 40px;
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%) !important;
             border-radius: 20px;
             text-align: center;
-            color: white;
+            color: white !important;
             box-shadow: 0 10px 30px rgba(29, 91, 104, 0.3);
         }}
         
         .user-info {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
-            color: white;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%) !important;
+            color: white !important;
             padding: 12px 24px;
             border-radius: 25px;
             margin: 15px 0;
@@ -243,8 +260,8 @@ def local_css():
         }}
         
         .guide-section {{
-            background: {COLORS["background"]};
-            color: {COLORS["text"]};
+            background: {COLORS["background"]} !important;
+            color: {COLORS["text"]} !important;
             padding: 20px;
             border-radius: 12px;
             margin-bottom: 20px;
@@ -255,7 +272,8 @@ def local_css():
         }}
         
         .column-selector {{
-            background: {COLORS["very_light_blue"]}30;
+            background: {COLORS["very_light_blue"]}30 !important;
+            color: {COLORS["text"]} !important;
             padding: 15px;
             border-radius: 10px;
             margin: 8px 0;
@@ -264,8 +282,8 @@ def local_css():
         
         /* BANNER : Style sans dégradé */
         .banner {{
-            background: {COLORS["primary"]};
-            color: white;
+            background: {COLORS["primary"]} !important;
+            color: white !important;
             padding: 3rem 2rem;
             border-radius: 20px;
             text-align: center;
@@ -287,7 +305,7 @@ def local_css():
         }}
         
         .banner h1 {{
-            color: white;
+            color: white !important;
             font-size: 2.8rem;
             font-weight: 600;
             margin-bottom: 1rem;
@@ -297,6 +315,7 @@ def local_css():
         }}
         
         .banner p {{
+            color: white !important;
             font-size: 1.2rem;
             font-weight: 300;
             margin-bottom: 0;
@@ -309,12 +328,12 @@ def local_css():
         .logo {{
             width: 70px;
             height: 70px;
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%) !important;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: white !important;
             font-weight: 600;
             font-size: 1.4rem;
             margin: 0 auto 15px auto;
@@ -324,8 +343,8 @@ def local_css():
         
         /* INFO BOX : Style Edset */
         .info-box {{
-            background: linear-gradient(135deg, {COLORS["very_light_blue"]}60 0%, {COLORS["light_gray"]}40 100%);
-            color: {COLORS["text"]};
+            background: linear-gradient(135deg, {COLORS["very_light_blue"]}60 0%, {COLORS["light_gray"]}40 100%) !important;
+            color: {COLORS["text"]} !important;
             border-left: 4px solid {COLORS["primary"]};
             padding: 1.5rem;
             border-radius: 10px;
@@ -350,15 +369,15 @@ def local_css():
         }}
         
         .badge-blue {{
-            color: white;
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
+            color: white !important;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%) !important;
             box-shadow: 0 2px 8px rgba(29, 91, 104, 0.2);
         }}
         
         /* TABS : Style Edset */
         .stTabs [data-baseweb="tab-list"] {{
             gap: 8px;
-            background: {COLORS["very_light_blue"]}30;
+            background: {COLORS["very_light_blue"]}30 !important;
             border-radius: 15px;
             padding: 5px;
         }}
@@ -368,17 +387,27 @@ def local_css():
             padding: 12px 24px;
             font-family: 'Roboto', sans-serif;
             font-weight: 500;
-            color: {COLORS["text"]};
+            color: {COLORS["text"]} !important;
             transition: all 0.3s ease;
         }}
         
         .stTabs [aria-selected="true"] {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%);
-            color: white;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["light_blue"]} 100%) !important;
+            color: white !important;
             box-shadow: 0 4px 15px rgba(29, 91, 104, 0.2);
         }}
         
-        /* CORRECTION MOBILE UNIQUEMENT */
+        /* CORRECTION POUR LES LIENS ET ÉLÉMENTS INTERACTIFS */
+        a, .stMarkdown a {{
+            color: {COLORS["primary"]} !important;
+            text-decoration: underline;
+        }}
+        
+        a:hover, .stMarkdown a:hover {{
+            color: {COLORS["secondary"]} !important;
+        }}
+        
+        /* CORRECTION MOBILE */
         @media (max-width: 768px) {{
             .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
                 font-size: 16px !important; /* Évite le zoom sur iOS */
@@ -407,6 +436,12 @@ def local_css():
                 width: 60px;
                 height: 60px;
                 font-size: 1.2rem;
+            }}
+            
+            /* CORRECTION MOBILE POUR LA SIDEBAR */
+            [data-testid="stSidebar"] {{
+                width: 100% !important;
+                max-width: 300px;
             }}
         }}
         
@@ -445,6 +480,45 @@ st.set_page_config(
 )
 
 local_css()
+
+# ==========================================
+# FONCTION DE DÉCONNEXION CORRIGÉE
+# ==========================================
+
+def handle_logout():
+    """Gère la déconnexion de manière plus robuste"""
+    try:
+        # Sauvegarder les données utilisateur si disponibles
+        user_id = get_user_identifier()
+        if user_id:
+            save_user_rag_state(user_id)
+        
+        # Nettoyer le cache
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        
+        # Nettoyer la session
+        for key in list(st.session_state.keys()):
+            if key not in ['initialized']:  # Garder l'état d'initialisation
+                del st.session_state[key]
+        
+        # Force le rechargement de la page
+        st.markdown(
+            """
+            <script>
+                window.parent.location.href = window.parent.location.href;
+            </script>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Alternative pour Streamlit Cloud
+        st.success("🚪 Déconnexion en cours...")
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"Erreur lors de la déconnexion: {e}")
+        st.info("Veuillez rafraîchir la page manuellement.")
 
 # ==========================================
 # GUIDE D'UTILISATION
@@ -1281,7 +1355,7 @@ def scenarisation_page():
         """, unsafe_allow_html=True)
 
 # ==========================================
-# SIDEBAR AVEC OUTILS ET DÉCONNEXION
+# SIDEBAR AVEC OUTILS ET DÉCONNEXION CORRIGÉE
 # ==========================================
 
 with st.sidebar:
@@ -1293,18 +1367,14 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # Informations utilisateur et déconnexion
+    # Informations utilisateur et déconnexion CORRIGÉE
     st.markdown("---")
     st.markdown(f"**👤 Connecté :** {st.user.name}")
     st.markdown(f"**📧 Email :** {st.user.email}")
     
-    if st.button("🚪 Se déconnecter", use_container_width=True):
-        if user_id:
-            save_user_rag_state(user_id)
-        # Correction pour Streamlit Cloud
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.rerun()
+    # BOUTON DE DÉCONNEXION CORRIGÉ
+    if st.button("🚪 Se déconnecter", use_container_width=True, type="primary"):
+        handle_logout()
     
     st.markdown("---")
     
