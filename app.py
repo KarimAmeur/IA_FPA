@@ -12,7 +12,7 @@ import zipfile
 import shutil
 from pathlib import Path
 from typing import List
-import requests
+import requests  # Ajouté pour OAuth Google
 
 # CORRECTION: Import corrigé pour Chroma (version compatible)
 try:
@@ -1183,16 +1183,17 @@ def convert_columns_to_csv_structure(selected_columns):
 # ==========================================
 
 def get_user_identifier():
-    """Récupère l'identifiant utilisateur de Streamlit Cloud - VERSION CORRIGÉE"""
+    """Récupère l'identifiant utilisateur Google"""
     try:
-        # Vérification plus robuste pour Streamlit Cloud
         if hasattr(st, 'user') and st.user is not None and hasattr(st.user, 'email'):
             return st.user.email
+        elif st.session_state.get('google_authenticated') and 'user_data' in st.session_state:
+            return st.session_state['user_data'].get('email', 'user@gmail.com')
         else:
-            return None
+            return "user@gmail.com"  # Fallback
     except Exception as e:
         st.error(f"Erreur lors de la récupération de l'utilisateur: {e}")
-        return None
+        return "user@gmail.com"
 
 def save_user_rag_state(user_id: str):
     """Sauvegarde l'état du RAG utilisateur (persistance automatique avec Chroma)"""
@@ -1421,8 +1422,74 @@ def initialize_system():
 # VÉRIFICATION AUTH ET POINT D'ENTRÉE PRINCIPAL - CORRIGÉ
 # ==========================================
 
-# Vérification de l'authentification AVANT tout le reste
-if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
+# Configuration OAuth Google depuis les secrets
+try:
+    GOOGLE_CLIENT_ID = st.secrets["auth"]["client_id"]
+    GOOGLE_CLIENT_SECRET = st.secrets["auth"]["client_secret"]
+    REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
+except KeyError:
+    st.error("❌ Configuration OAuth manquante dans les secrets")
+    st.stop()
+
+def handle_oauth_callback():
+    """Traite le retour de Google OAuth"""
+    import urllib.parse
+    import requests
+    
+    # Récupérer les paramètres d'URL
+    query_params = st.experimental_get_query_params()
+    
+    if 'code' in query_params:
+        code = query_params['code'][0]
+        
+        # Échanger le code contre un token
+        token_url = 'https://oauth2.googleapis.com/token'
+        data = {
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': REDIRECT_URI
+        }
+        
+        try:
+            # Demander le token
+            response = requests.post(token_url, data=data)
+            token_data = response.json()
+            
+            if 'access_token' in token_data:
+                # Récupérer les infos utilisateur
+                user_url = 'https://www.googleapis.com/oauth2/v2/userinfo'
+                headers = {'Authorization': f'Bearer {token_data["access_token"]}'}
+                user_response = requests.get(user_url, headers=headers)
+                user_info = user_response.json()
+                
+                # Créer l'utilisateur authentifié
+                class GoogleUser:
+                    def __init__(self, user_data):
+                        self.name = user_data.get('name', 'Utilisateur Google')
+                        self.email = user_data.get('email', '')
+                        self.picture = user_data.get('picture', '')
+                        self.is_logged_in = True
+                
+                st.user = GoogleUser(user_info)
+                st.session_state['google_authenticated'] = True
+                st.session_state['user_data'] = user_info
+                
+                # Nettoyer l'URL
+                st.experimental_set_query_params()
+                st.success("✅ Connexion Google réussie!")
+                st.rerun()
+                
+        except Exception as e:
+            st.error(f"❌ Erreur d'authentification: {e}")
+
+# Traiter le callback si présent
+if 'code' in st.experimental_get_query_params():
+    handle_oauth_callback()
+
+# Vérifier si authentifié
+if not st.session_state.get('google_authenticated', False):
     st.markdown("""
     <div class="auth-container">
         <div class="modern-logo"></div>
@@ -1433,12 +1500,12 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # URL d'authentification Google avec vos vraies credentials
-        google_auth_url = f"https://accounts.google.com/o/oauth2/auth?client_id=61896238780-jmh0pu5kqkc3tmptuqqshtj114oldvam.apps.googleusercontent.com&redirect_uri=https://p5gywxum4zyvyhauvk2c5q.streamlit.app/oauth2callback&scope=openid%20email%20profile&response_type=code&access_type=offline&prompt=select_account"
+        # URL d'authentification Google
+        auth_url = f"https://accounts.google.com/o/oauth2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=openid%20email%20profile&response_type=code&access_type=offline&prompt=select_account"
         
         st.markdown(f"""
         <div style="text-align: center;">
-            <a href="{google_auth_url}" target="_self" style="text-decoration: none;">
+            <a href="{auth_url}" target="_self" style="text-decoration: none;">
                 <button style="
                     background: linear-gradient(135deg, #1D5B68 0%, #0f3d47 100%);
                     color: white;
@@ -1451,7 +1518,6 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
                     cursor: pointer;
                     width: 100%;
                     box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
-                    transition: all 0.2s ease;
                 ">
                     🔐 Se connecter avec Google
                 </button>
@@ -1460,6 +1526,17 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
         """, unsafe_allow_html=True)
     
     st.stop()
+else:
+    # Recréer l'utilisateur à partir des données sauvées
+    if 'user_data' in st.session_state:
+        class GoogleUser:
+            def __init__(self, user_data):
+                self.name = user_data.get('name', 'Utilisateur Google')
+                self.email = user_data.get('email', '')
+                self.picture = user_data.get('picture', '')
+                self.is_logged_in = True
+        
+        st.user = GoogleUser(st.session_state['user_data'])
 
 # ==========================================
 # UTILISATEUR CONNECTÉ - APPLICATION PRINCIPALE
@@ -1775,22 +1852,23 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
     
-    # Informations utilisateur et déconnexion - VERSION CORRIGÉE
+    # Informations utilisateur et déconnexion
     st.markdown("---")
     if hasattr(st.user, 'name') and st.user.name:
         st.markdown(f"**<span class='icon-formation icon-diplome'></span>Connecté :** {st.user.name}")
     if hasattr(st.user, 'email') and st.user.email:
         st.markdown(f"**📧 Email :** {st.user.email}")
     
-    # Message d'information pour la déconnexion au lieu du bouton problématique
-    st.markdown("""
-    <div style="background: #f3f4f6; padding: 10px; border-radius: 8px; margin: 10px 0;">
-        <p style="font-size: 0.9rem; margin: 0; color: #374151;">
-            <strong>🚪 Pour vous déconnecter :</strong><br>
-            Utilisez le menu ☰ → Se déconnecter
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    if st.button("🚪 Se déconnecter", use_container_width=True):
+        # Déconnexion Google
+        st.session_state['google_authenticated'] = False
+        if 'user_data' in st.session_state:
+            del st.session_state['user_data']
+        if user_id:
+            save_user_rag_state(user_id)
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.rerun()
     
     st.markdown("---")
     
