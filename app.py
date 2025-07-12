@@ -4,6 +4,7 @@ try:
     import sys
     sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 except ImportError:
+    # pysqlite3 n'est pas disponible, continuer avec sqlite3 normal
     pass
 
 import streamlit as st
@@ -12,13 +13,9 @@ import zipfile
 import shutil
 from pathlib import Path
 from typing import List
-import requests
 
-# CORRECTION: Import corrigé pour Chroma (version compatible)
-try:
-    from langchain_chroma import Chroma
-except ImportError:
-    from langchain_community.vectorstores import Chroma
+# CORRECTION: Import corrigé pour Chroma
+from langchain_community.vectorstores import Chroma
 
 from langchain_mistralai import ChatMistralAI
 from prompting import (
@@ -91,24 +88,105 @@ COLORS = {
     "text": "#FFFFFF"
 }
 
-# Configuration CSS personnalisée
+# Configuration CSS personnalisée - OPTIMISÉE MOBILE
 def local_css():
     st.markdown(f"""
     <style>
+        /* Configuration de base */
         .stApp {{
             background-color: {COLORS["background"]};
             color: {COLORS["text"]};
         }}
         
+        /* Headers responsive */
         h1, h2, h3 {{
             color: {COLORS["light_blue"]};
             font-family: 'Helvetica Neue', sans-serif;
         }}
         
+        /* Responsive pour mobile */
+        @media (max-width: 768px) {{
+            .stApp {{
+                padding: 0.5rem !important;
+            }}
+            
+            /* Réduire l'espace entre les éléments sur mobile */
+            .element-container {{
+                margin-bottom: 0.5rem !important;
+            }}
+            
+            /* Adapter la taille du texte */
+            h1 {{
+                font-size: 1.5rem !important;
+            }}
+            
+            h2 {{
+                font-size: 1.3rem !important;
+            }}
+            
+            h3 {{
+                font-size: 1.1rem !important;
+            }}
+            
+            /* Optimiser les colonnes sur mobile */
+            .stColumn {{
+                padding: 0.25rem !important;
+            }}
+            
+            /* Messages plus compacts */
+            .user-message, .assistant-message, .scenario-card {{
+                padding: 10px !important;
+                margin-bottom: 8px !important;
+                font-size: 0.9rem !important;
+            }}
+            
+            /* Sidebar plus accessible */
+            [data-testid="stSidebar"] {{
+                width: 100% !important;
+            }}
+            
+            /* Boutons plus grands sur mobile */
+            .stButton > button {{
+                width: 100% !important;
+                padding: 12px !important;
+                font-size: 1rem !important;
+            }}
+            
+            /* Input plus accessibles */
+            .stTextInput > div > div > input,
+            .stTextArea > div > div > textarea {{
+                font-size: 16px !important; /* Évite le zoom sur iOS */
+            }}
+            
+            /* Upload box plus compacte */
+            .upload-box {{
+                padding: 15px !important;
+                margin: 10px 0 !important;
+            }}
+            
+            /* Banner plus compact */
+            .banner {{
+                padding: 1rem !important;
+                margin-bottom: 1rem !important;
+            }}
+            
+            .banner h1 {{
+                font-size: 1.4rem !important;
+                margin-bottom: 0.5rem !important;
+            }}
+            
+            .banner p {{
+                font-size: 0.9rem !important;
+                margin: 0 !important;
+            }}
+        }}
+        
+        /* Inputs et sélecteurs */
         .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
             background-color: {COLORS["dark_gray"]};
             color: {COLORS["text"]};
             border: 1px solid {COLORS["light_blue"]};
+            border-radius: 6px;
         }}
         
         .stSelectbox>div>div>div {{
@@ -118,6 +196,7 @@ def local_css():
             border: 1px solid {COLORS["light_blue"]};
         }}
         
+        /* Boutons */
         .stButton>button {{
             background-color: {COLORS["primary"]};
             color: {COLORS["text"]};
@@ -130,13 +209,16 @@ def local_css():
         
         .stButton>button:hover {{
             background-color: {COLORS["light_blue"]};
+            transform: translateY(-1px);
         }}
         
+        /* Sidebar */
         [data-testid="stSidebar"] {{
             background-color: {COLORS["dark_gray"]};
             color: {COLORS["text"]};
         }}
         
+        /* Cards et messages */
         .scenario-card, .user-message, .assistant-message {{
             background-color: {COLORS["dark_gray"]};
             color: {COLORS["text"]};
@@ -144,6 +226,8 @@ def local_css():
             border-radius: 10px;
             border-left: 5px solid {COLORS["secondary"]};
             margin-bottom: 10px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }}
         
         .upload-box {{
@@ -155,377 +239,117 @@ def local_css():
             margin: 20px 0;
         }}
         
-        .auth-container {{
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            text-align: center;
+        /* Banner principal */
+        .banner {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
             color: white;
-        }}
-        
-        .user-info {{
-            background-color: {COLORS["primary"]};
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            margin: 10px 0;
-        }}
-        
-        .guide-section {{
-            background-color: {COLORS["dark_gray"]};
-            padding: 15px;
+            padding: 2rem;
             border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 4px solid {COLORS["light_blue"]};
+            text-align: center;
+            margin-bottom: 2rem;
         }}
         
-        .column-selector {{
-            background-color: {COLORS["dark_gray"]};
-            padding: 10px;
-            border-radius: 8px;
-            margin: 5px 0;
+        /* Info box */
+        .info-box {{
+            background: {COLORS["very_light_blue"]};
+            color: {COLORS["dark_gray"]};
+            border-left: 4px solid {COLORS["primary"]};
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }}
+        
+        /* Badge */
+        .badge {{
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+        }}
+        
+        .badge-blue {{
+            color: #fff;
+            background-color: {COLORS["primary"]};
+        }}
+        
+        /* Logo */
+        .logo {{
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["secondary"]} 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }}
+        
+        /* Optimisations de performance pour mobile */
+        * {{
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }}
+        
+        /* Éviter les débordements */
+        .element-container {{
+            max-width: 100%;
+            overflow-x: hidden;
+        }}
+        
+        /* Chat input optimisé pour mobile */
+        .stChatInput {{
+            position: sticky;
+            bottom: 0;
+            background: {COLORS["background"]};
+            padding: 10px 0;
+            border-top: 1px solid {COLORS["dark_gray"]};
         }}
     </style>
     """, unsafe_allow_html=True)
 
-# Configuration de l'application Streamlit
+# Configuration de l'application Streamlit - OPTIMISÉE MOBILE
 st.set_page_config(
-    page_title="Assistant FPA - Ingénierie de Formation",
+    page_title="📘 Assistant FPA",
     page_icon="📘",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto",  # Auto-collapse sur mobile
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': "Assistant FPA - Ingénierie de Formation"
+    }
 )
 
 local_css()
 
-# ==========================================
-# GUIDE D'UTILISATION
-# ==========================================
-
-def show_usage_guide():
-    """Affiche le guide d'utilisation de l'assistant"""
-    st.markdown("""
-    <div class="guide-section">
-        <h2>📖 Guide d'utilisation de l'Assistant FPA</h2>
-        <p>Votre assistant intelligent pour l'ingénierie de formation professionnelle</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### 💬 **Onglet 1 : Assistant FPA**")
-    st.markdown("""
-    <div class="guide-section">
-        <p><strong>🎯 Objectif :</strong> Poser des questions sur la formation professionnelle et obtenir des réponses basées sur une base de connaissances spécialisée.</p>
-        
-        <p><strong>🔧 Comment utiliser :</strong></p>
-        <ul>
-            <li>Tapez votre question dans le champ de saisie en bas</li>
-            <li>L'assistant recherche dans la base de connaissances commune</li>
-            <li>Vous obtenez une réponse détaillée avec les sources</li>
-            <li>L'historique de conversation est conservé pour le contexte</li>
-        </ul>
-        
-        <p><strong>💡 Exemples de questions :</strong></p>
-        <ul>
-            <li>"Comment construire un plan de formation efficace ?"</li>
-            <li>"Quelles sont les méthodes pédagogiques actives ?"</li>
-            <li>"Comment évaluer les compétences des apprenants ?"</li>
-            <li>"Qu'est-ce que l'approche par compétences ?"</li>
-        </ul>
-        
-        <p><strong>🛠️ Outils supplémentaires :</strong></p>
-        <ul>
-            <li><strong>Exemple de plan :</strong> Génère un modèle de plan de formation</li>
-            <li><strong>Aide ingénierie :</strong> Conseils pour votre démarche pédagogique</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### 🎯 **Onglet 2 : Scénarisation**")
-    st.markdown("""
-    <div class="guide-section">
-        <p><strong>🎯 Objectif :</strong> Créer des scénarios pédagogiques détaillés et structurés selon l'Approche Par Compétences (APC).</p>
-        
-        <p><strong>🔧 Comment utiliser :</strong></p>
-        <ol>
-            <li><strong>Choisir le type d'entrée :</strong>
-                <ul>
-                    <li><strong>Programme :</strong> Décrivez le contenu à enseigner</li>
-                    <li><strong>Compétences :</strong> Listez les compétences à développer</li>
-                </ul>
-            </li>
-            <li><strong>Saisir le contenu :</strong> Décrivez en détail votre sujet de formation</li>
-            <li><strong>Définir la durée :</strong> Précisez les heures et minutes de formation</li>
-            <li><strong>Personnaliser les colonnes :</strong> Sélectionnez les colonnes du tableau de scénarisation</li>
-            <li><strong>Générer :</strong> L'IA crée un scénario pédagogique complet</li>
-        </ol>
-        
-        <p><strong>📋 Résultat obtenu :</strong></p>
-        <ul>
-            <li>Tableau de scénarisation détaillé avec timing précis</li>
-            <li>Objectifs formulés selon l'APC de TARDIF</li>
-            <li>Méthodes pédagogiques variées et adaptées</li>
-            <li>Activités formateur/apprenant détaillées</li>
-            <li>Ressources et modalités d'évaluation</li>
-        </ul>
-        
-        <p><strong>💡 Conseils :</strong></p>
-        <ul>
-            <li>Plus votre description est détaillée, meilleur sera le scénario</li>
-            <li>La durée sera respectée au minute près</li>
-            <li>Les compétences seront automatiquement reformulées selon l'APC</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### 📚 **Onglet 3 : Mon RAG Personnel**")
-    st.markdown("""
-    <div class="guide-section">
-        <p><strong>🎯 Objectif :</strong> Créer votre propre base de connaissances personnelle en ajoutant vos documents.</p>
-        
-        <p><strong>🔧 Comment utiliser :</strong></p>
-        <ol>
-            <li><strong>Upload de documents :</strong>
-                <ul>
-                    <li>Formats supportés : PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx)</li>
-                    <li>Plusieurs fichiers simultanément possibles</li>
-                    <li>Extraction automatique du texte</li>
-                </ul>
-            </li>
-            <li><strong>Vectorisation :</strong>
-                <ul>
-                    <li>Découpage intelligent en chunks de 1024 caractères</li>
-                    <li>Même modèle d'embedding que la base principale (Mistral)</li>
-                    <li>Compatibilité garantie</li>
-                </ul>
-            </li>
-            <li><strong>Recherche personnelle :</strong>
-                <ul>
-                    <li>Testez des requêtes dans vos documents</li>
-                    <li>Scores de pertinence affichés</li>
-                    <li>Extraits des documents sources</li>
-                </ul>
-            </li>
-        </ol>
-        
-        <p><strong>🔒 Confidentialité :</strong></p>
-        <ul>
-            <li><strong>Isolation totale :</strong> Vos documents restent privés</li>
-            <li><strong>Pas de partage :</strong> Aucun autre utilisateur n'y a accès</li>
-            <li><strong>Stockage sécurisé :</strong> Base vectorielle personnelle</li>
-        </ul>
-        
-        <p><strong>💡 Cas d'usage :</strong></p>
-        <ul>
-            <li>Ajouter vos supports de cours personnels</li>
-            <li>Intégrer des documents d'entreprise</li>
-            <li>Créer une base de ressources spécialisées</li>
-            <li>Rechercher rapidement dans vos archives</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ==========================================
-# GESTION DES COLONNES DE SCÉNARISATION
-# ==========================================
-
-def get_default_scenario_columns():
-    """Retourne les colonnes par défaut pour la scénarisation"""
-    return [
-        "DURÉE",
-        "HORAIRES", 
-        "CONTENU",
-        "OBJECTIFS PÉDAGOGIQUES",
-        "MÉTHODE",
-        "RÉPARTITION DES APPRENANTS",
-        "ACTIVITÉS - Formateur",
-        "ACTIVITÉS - Apprenants", 
-        "RESSOURCES et MATÉRIEL",
-        "ÉVALUATION - Type",
-        "ÉVALUATION - Sujet"
-    ]
-
-def column_selector_interface():
-    """Interface pour sélectionner les colonnes du tableau de scénarisation"""
-    st.markdown("""
-    <div class="scenario-card">
-        <h3>📋 Personnalisation du tableau de scénarisation</h3>
-        <p>Sélectionnez les colonnes que vous souhaitez inclure dans votre tableau de scénarisation :</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    default_columns = get_default_scenario_columns()
-    
-    # Initialiser les colonnes sélectionnées dans session_state si pas déjà fait
-    if 'selected_columns' not in st.session_state:
-        st.session_state.selected_columns = default_columns.copy()
-    
-    if 'custom_columns' not in st.session_state:
-        st.session_state.custom_columns = []
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.markdown("**📊 Colonnes disponibles :**")
-        
-        # Checkboxes pour les colonnes par défaut
-        selected_defaults = []
-        for col in default_columns:
-            if st.checkbox(col, value=col in st.session_state.selected_columns, key=f"default_{col}"):
-                selected_defaults.append(col)
-        
-        # Afficher les colonnes personnalisées ajoutées
-        if st.session_state.custom_columns:
-            st.markdown("**✨ Colonnes personnalisées :**")
-            selected_customs = []
-            for col in st.session_state.custom_columns:
-                if st.checkbox(col, value=col in st.session_state.selected_columns, key=f"custom_{col}"):
-                    selected_customs.append(col)
-        else:
-            selected_customs = []
-        
-        # Mettre à jour la sélection
-        st.session_state.selected_columns = selected_defaults + selected_customs
-    
-    with col2:
-        st.markdown("**➕ Ajouter une colonne personnalisée :**")
-        
-        new_column = st.text_input(
-            "Nom de la nouvelle colonne",
-            placeholder="Ex: MATÉRIEL SPÉCIFIQUE",
-            key="new_column_input"
-        )
-        
-        if st.button("➕ Ajouter", type="secondary", use_container_width=True):
-            if new_column and new_column not in default_columns and new_column not in st.session_state.custom_columns:
-                st.session_state.custom_columns.append(new_column)
-                st.session_state.selected_columns.append(new_column)
-                st.rerun()
-            elif new_column in default_columns or new_column in st.session_state.custom_columns:
-                st.warning("⚠️ Cette colonne existe déjà")
-        
-        # Bouton pour supprimer les colonnes personnalisées
-        if st.session_state.custom_columns:
-            st.markdown("**🗑️ Gérer les colonnes personnalisées :**")
-            col_to_remove = st.selectbox(
-                "Supprimer une colonne",
-                [""] + st.session_state.custom_columns,
-                key="remove_column_select"
-            )
-            
-            if st.button("🗑️ Supprimer", type="secondary", use_container_width=True):
-                if col_to_remove:
-                    st.session_state.custom_columns.remove(col_to_remove)
-                    if col_to_remove in st.session_state.selected_columns:
-                        st.session_state.selected_columns.remove(col_to_remove)
-                    st.rerun()
-        
-        # Bouton de reset
-        if st.button("🔄 Réinitialiser", type="secondary", use_container_width=True):
-            st.session_state.selected_columns = default_columns.copy()
-            st.session_state.custom_columns = []
-            st.rerun()
-    
-    # Afficher les colonnes sélectionnées
-    if st.session_state.selected_columns:
-        st.markdown("**✅ Colonnes sélectionnées pour le tableau :**")
-        cols_text = " | ".join(st.session_state.selected_columns)
-        st.info(f"📋 {cols_text}")
-        return st.session_state.selected_columns
-    else:
-        st.warning("⚠️ Veuillez sélectionner au moins une colonne")
-        return []
-
-def convert_columns_to_csv_structure(selected_columns):
-    """Convertit la liste des colonnes sélectionnées en structure CSV pour le prompt"""
-    # Créer l'en-tête CSV
-    header = "\t".join(selected_columns)
-    
-    # Créer une ligne d'exemple pour chaque colonne
-    example_row = []
-    for col in selected_columns:
-        if "DURÉE" in col.upper():
-            example_row.append("20 min")
-        elif "HORAIRES" in col.upper():
-            example_row.append("9h00-9h20")
-        elif "CONTENU" in col.upper():
-            example_row.append("Introduction à la formation")
-        elif "OBJECTIFS" in col.upper():
-            example_row.append("Identifier le niveau initial des participants")
-        elif "MÉTHODE" in col.upper():
-            example_row.append("transmissive")
-        elif "RÉPARTITION" in col.upper():
-            example_row.append("groupe entier")
-        elif "FORMATEUR" in col.upper() or ("ACTIVITÉS" in col.upper() and "FORMATEUR" in col.upper()):
-            example_row.append("présentation du formateur, du programme")
-        elif "APPRENANT" in col.upper() or ("ACTIVITÉS" in col.upper() and "APPRENANT" in col.upper()):
-            example_row.append("écoute active, questions")
-        elif "RESSOURCES" in col.upper() or "MATÉRIEL" in col.upper():
-            example_row.append("présentation PowerPoint, liste des participants")
-        elif "ÉVALUATION" in col.upper() and "TYPE" in col.upper():
-            example_row.append("diagnostique")
-        elif "ÉVALUATION" in col.upper() and "SUJET" in col.upper():
-            example_row.append("connaissances préalables")
-        elif "ÉVALUATION" in col.upper():
-            example_row.append("formative")
-        else:
-            example_row.append("À compléter")
-    
-    example_line = "\t".join(example_row)
-    
-    return f"{header}\n{example_line}"
-
-# ==========================================
-# GESTION DE L'UTILISATEUR (STREAMLIT CLOUD)
-# ==========================================
-
-def get_user_identifier():
-    """Récupère l'identifiant utilisateur de Streamlit Cloud"""
+# Détection mobile via user agent
+def is_mobile():
+    """Détecte si l'utilisateur est sur mobile"""
     try:
-        # Utilise l'API native de Streamlit Cloud pour l'utilisateur connecté
-        if hasattr(st, 'user') and st.user is not None:
-            return st.user.email
-        else:
-            return None
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération de l'utilisateur: {e}")
-        return None
+        # Utiliser les headers de requête si disponibles
+        user_agent = st.context.headers.get("user-agent", "").lower()
+        mobile_keywords = ["mobile", "android", "iphone", "ipad", "tablet"]
+        return any(keyword in user_agent for keyword in mobile_keywords)
+    except:
+        # Fallback: utiliser JavaScript pour détecter la taille d'écran
+        return False
 
-def save_user_rag_state(user_id: str):
-    """Sauvegarde l'état du RAG utilisateur (persistance automatique avec Chroma)"""
-    pass
-
-def load_user_rag_state(user_id: str):
-    """Charge l'état du RAG utilisateur spécifique"""
-    user_rag_dir = f"chroma_db_user_{user_id.replace('@', '_').replace('.', '_')}"
-    
-    if os.path.exists(user_rag_dir) and os.listdir(user_rag_dir):
-        try:
-            embeddings = load_embedding_model()
-            if embeddings:
-                vectorstore = Chroma(
-                    persist_directory=user_rag_dir,
-                    embedding_function=embeddings
-                )
-                st.session_state[f'RAG_user_{user_id}'] = vectorstore
-                return vectorstore
-        except Exception as e:
-            st.error(f"Erreur lors du chargement du RAG utilisateur: {e}")
-    
-    st.session_state[f'RAG_user_{user_id}'] = None
-    return None
-
-# ==========================================
-# FONCTIONS ORIGINALES (CORRECTIONS APPLIQUÉES)
-# ==========================================
-
+# NOUVELLE FONCTION : Nettoyage automatique ChromaDB
 def clean_corrupted_chromadb(db_path):
     """Nettoie automatiquement une base ChromaDB corrompue"""
     try:
         st.warning("🔧 Détection d'une base ChromaDB incompatible...")
         st.info("🗑️ Suppression automatique de l'ancienne base...")
         
+        # Supprimer le dossier corrompu
         if os.path.exists(db_path):
             shutil.rmtree(db_path)
         
@@ -537,6 +361,7 @@ def clean_corrupted_chromadb(db_path):
         st.error(f"❌ Erreur lors du nettoyage: {e}")
         return False
 
+# Fonctions de gestion de la base vectorielle
 @st.cache_resource
 def extract_database_if_needed():
     """Décompresse automatiquement la base vectorielle si nécessaire"""
@@ -544,10 +369,12 @@ def extract_database_if_needed():
     db_path = "chromadb_formation"
     zip_path = "chromadb_formation.zip"
     
+    # Si le dossier existe déjà et n'est pas vide, pas besoin de décompresser
     if os.path.exists(db_path) and os.listdir(db_path):
         st.success("✅ Base vectorielle déjà disponible")
         return True
     
+    # Si le zip existe, le décompresser
     if os.path.exists(zip_path):
         st.info("📦 Décompression de la base vectorielle...")
         
@@ -565,19 +392,23 @@ def extract_database_if_needed():
     return False
 
 def database_upload_interface():
-    """Interface d'upload de la base vectorielle"""
+    """Interface d'upload de la base vectorielle - OPTIMISÉE MOBILE"""
     
-    st.markdown("""
+    # Interface adaptée mobile
+    mobile = is_mobile()
+    
+    st.markdown(f"""
     <div class="upload-box">
         <h3>📤 Upload de votre base vectorielle</h3>
-        <p>La base vectorielle ChromaDB est nécessaire pour le fonctionnement de l'assistant.</p>
+        <p>{"Base ChromaDB requise" if mobile else "La base vectorielle ChromaDB est nécessaire pour le fonctionnement de l'assistant."}</p>
     </div>
     """, unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader(
-        "Choisir le fichier chromadb_formation.zip",
+        "Fichier chromadb_formation.zip",
         type="zip",
-        help="Uploadez votre base vectorielle compressée au format ZIP"
+        help="Base vectorielle au format ZIP",
+        label_visibility="visible" if not mobile else "collapsed"
     )
     
     if uploaded_file is not None:
@@ -585,22 +416,22 @@ def database_upload_interface():
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            status_text.text("💾 Sauvegarde du fichier...")
+            status_text.text("💾 Sauvegarde...")
             progress_bar.progress(25)
             
             with open("chromadb_formation.zip", "wb") as f:
                 f.write(uploaded_file.getbuffer())
             
-            status_text.text("📦 Décompression en cours...")
+            status_text.text("📦 Décompression...")
             progress_bar.progress(50)
             
             with zipfile.ZipFile("chromadb_formation.zip", 'r') as zip_ref:
                 zip_ref.extractall(".")
             
             progress_bar.progress(100)
-            status_text.text("✅ Base vectorielle installée avec succès!")
+            status_text.text("✅ Installation réussie!")
             
-            st.success("🎉 Votre base vectorielle a été installée ! L'application va redémarrer...")
+            st.success("🎉 Base vectorielle installée ! Redémarrage...")
             st.balloons()
             
             import time
@@ -608,11 +439,12 @@ def database_upload_interface():
             st.rerun()
             
         except Exception as e:
-            st.error(f"❌ Erreur lors de l'installation: {e}")
-            st.info("💡 Assurez-vous que le fichier ZIP contient bien le dossier 'chromadb_formation'")
+            st.error(f"❌ Erreur: {e}")
+            st.info("💡 Vérifiez que le ZIP contient 'chromadb_formation'")
     
     return False
 
+# CORRECTION: Fonction de chargement des embeddings Mistral
 @st.cache_resource
 def load_embedding_model():
     """Charge le modèle d'embedding Mistral compatible avec la base vectorielle"""
@@ -624,7 +456,7 @@ def load_embedding_model():
         return MistralEmbeddings(api_key=MISTRAL_API_KEY, model="mistral-embed")
         
     except Exception as e:
-        st.error(f"❌ Erreur lors du chargement du modèle d'embedding: {e}")
+        st.error(f"❌ Erreur modèle embedding: {e}")
         return None
 
 @st.cache_resource
@@ -637,7 +469,7 @@ def load_vector_store():
             
         db_path = "chromadb_formation"
         if not os.path.exists(db_path):
-            st.error("❌ Base vectorielle 'chromadb_formation' non trouvée")
+            st.error("❌ Base vectorielle non trouvée")
             return None
             
         try:
@@ -645,24 +477,26 @@ def load_vector_store():
                 persist_directory=db_path,
                 embedding_function=embeddings
             )
-            # Test de la base
+            # Test de fonctionnement
             vectorstore.similarity_search("test", k=1)
             return vectorstore
             
         except Exception as chroma_error:
             error_msg = str(chroma_error).lower()
             
+            # Détecter l'erreur de colonne manquante
             if "no such column: collections.topic" in error_msg:
-                st.error("❌ Base ChromaDB incompatible détectée")
+                st.error("❌ Base ChromaDB incompatible")
                 
                 if clean_corrupted_chromadb(db_path):
                     return "needs_reupload"
                 else:
                     return None
                     
+            # Détecter l'erreur de dimension d'embedding
             elif "embedding dimension" in error_msg and "does not match" in error_msg:
-                st.error("❌ Incompatibilité de dimensions d'embeddings détectée")
-                st.info("💡 La base vectorielle a été créée avec des embeddings différents")
+                st.error("❌ Incompatibilité embeddings")
+                st.info("💡 Base créée avec des embeddings différents")
                 
                 if clean_corrupted_chromadb(db_path):
                     return "needs_reupload"
@@ -673,7 +507,7 @@ def load_vector_store():
                 return None
                 
     except Exception as e:
-        st.error(f"❌ Erreur lors du chargement de la base vectorielle: {e}")
+        st.error(f"❌ Erreur chargement base: {e}")
         return None
 
 @st.cache_resource
@@ -691,16 +525,17 @@ def create_mistral_llm():
             max_tokens=4000
         )
     except Exception as e:
-        st.error(f"❌ Erreur lors de la création du modèle Mistral: {e}")
+        st.error(f"❌ Erreur création Mistral: {e}")
         return None
 
+# Initialisation automatique du système
 def initialize_system():
     """Initialise le système avec gestion automatique de la base et des erreurs"""
     
     if not extract_database_if_needed():
         return None, None, "database_missing"
     
-    with st.spinner("🚀 Initialisation de l'Assistant FPA..."):
+    with st.spinner("🚀 Initialisation..."):
         vectorstore = load_vector_store()
         
         if vectorstore == "needs_reupload":
@@ -715,59 +550,7 @@ def initialize_system():
             
         return vectorstore, llm, "success"
 
-# ==========================================
-# VÉRIFICATION AUTH ET POINT D'ENTRÉE PRINCIPAL
-# ==========================================
-
-# Vérification de l'authentification AVANT tout le reste
-if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
-    st.markdown("""
-    <div class="auth-container">
-        <h1>🎓 Assistant FPA</h1>
-        <h2>Ingénierie de Formation</h2>
-        <p style="font-size: 1.2rem; margin: 30px 0;">
-            Connectez-vous avec votre compte Google pour accéder à votre espace personnel de formation
-        </p>
-        
-        <div style="margin: 40px 0;">
-            <h3>✨ Fonctionnalités personnalisées :</h3>
-            <div style="text-align: left; display: inline-block; margin: 20px 0;">
-                <p>📚 • Base de connaissances commune en formation</p>
-                <p>🎯 • Scénarisation pédagogique intelligente</p>
-                <p>📄 • Votre propre RAG personnel</p>
-                <p>💾 • Sauvegarde automatique de vos documents</p>
-                <p>🔒 • Données privées et sécurisées</p>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔐 Se connecter avec Google", 
-                    type="primary", 
-                    use_container_width=True):
-            st.switch_page("login")
-    
-    st.markdown("""
-    <div style="text-align: center; margin-top: 50px; color: #888;">
-        <p>🔒 <strong>Sécurité et confidentialité :</strong></p>
-        <p>• Vos données sont privées et sécurisées</p>
-        <p>• Chaque utilisateur a son propre espace isolé</p>
-        <p>• Aucune donnée partagée entre utilisateurs</p>
-        <p>• Authentification déléguée à Google (OAuth 2.0)</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.stop()
-
-# ==========================================
-# UTILISATEUR CONNECTÉ - APPLICATION PRINCIPALE
-# ==========================================
-
-user_id = get_user_identifier()
-
-# Initialisation du système (une seule fois)
+# Vérification et initialisation
 if 'initialized' not in st.session_state:
     vectorstore, llm, status = initialize_system()
     st.session_state.vectorstore = vectorstore
@@ -777,43 +560,104 @@ if 'initialized' not in st.session_state:
     st.session_state.scenarisation_history = []
     st.session_state.initialized = True
 
-# Chargement du RAG utilisateur spécifique
-if user_id and f'RAG_user_{user_id}' not in st.session_state:
-    load_user_rag_state(user_id)
-
 # Gestion des erreurs d'initialisation
 if st.session_state.initialization_status == "database_missing":
     st.markdown("""
     <div class="banner">
-        <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
+        <h1>🎓 Assistant FPA</h1>
         <p>Configuration initiale requise</p>
     </div>
     """, unsafe_allow_html=True)
     
-    st.warning("⚠️ Base vectorielle non trouvée ou incompatible")
-    st.info("📋 Veuillez uploader votre base vectorielle pour commencer à utiliser l'assistant.")
+    st.warning("⚠️ Base vectorielle requise")
+    st.info("📋 Uploadez votre base vectorielle pour commencer.")
     
     if not database_upload_interface():
         st.stop()
 
 elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"]:
-    st.error("❌ Erreur lors de l'initialisation du système")
+    st.error("❌ Erreur d'initialisation")
+    
+    # Interface de diagnostic - COMPACTE POUR MOBILE
+    st.subheader("🔧 Diagnostic")
+    
+    # Version mobile : boutons en vertical
+    mobile = is_mobile()
+    cols = st.columns(1) if mobile else st.columns(3)
+    
+    if mobile:
+        if st.button("🧪 Test API Mistral", use_container_width=True):
+            try:
+                client = MistralClient(api_key=MISTRAL_API_KEY)
+                models = client.list_models()
+                st.success("✅ API Mistral OK")
+            except Exception as e:
+                st.error(f"❌ API Mistral: {e}")
+        
+        if st.button("🤗 Test HuggingFace", use_container_width=True):
+            try:
+                if HUGGINGFACE_TOKEN:
+                    from huggingface_hub import whoami
+                    info = whoami(token=HUGGINGFACE_TOKEN)
+                    st.success(f"✅ Token HF: {info['name']}")
+                else:
+                    st.warning("⚠️ Token HF manquant")
+            except Exception as e:
+                st.error(f"❌ Token HF: {e}")
+        
+        if st.button("📁 Vérifier base", use_container_width=True):
+            if os.path.exists("chromadb_formation"):
+                files = os.listdir("chromadb_formation")
+                st.info(f"📂 {len(files)} fichiers trouvés")
+            else:
+                st.error("❌ Dossier 'chromadb_formation' absent")
+    else:
+        # Version desktop : boutons en horizontal
+        with cols[0]:
+            if st.button("🧪 Test API Mistral"):
+                try:
+                    client = MistralClient(api_key=MISTRAL_API_KEY)
+                    models = client.list_models()
+                    st.success("✅ API Mistral accessible")
+                except Exception as e:
+                    st.error(f"❌ Erreur API Mistral: {e}")
+        
+        with cols[1]:
+            if st.button("🤗 Test HuggingFace"):
+                try:
+                    if HUGGINGFACE_TOKEN:
+                        from huggingface_hub import whoami
+                        info = whoami(token=HUGGINGFACE_TOKEN)
+                        st.success(f"✅ Token HF valide: {info['name']}")
+                    else:
+                        st.warning("⚠️ Token HuggingFace non configuré")
+                except Exception as e:
+                    st.error(f"❌ Token HF invalide: {e}")
+        
+        with cols[2]:
+            if st.button("📁 Vérifier base"):
+                if os.path.exists("chromadb_formation"):
+                    files = os.listdir("chromadb_formation")
+                    st.info(f"📂 Dossier trouvé avec {len(files)} fichiers")
+                else:
+                    st.error("❌ Dossier 'chromadb_formation' non trouvé")
+    
+    if st.button("🔄 Réessayer", use_container_width=True):
+        st.session_state.initialized = False
+        st.rerun()
+    
     st.stop()
 
-# ==========================================
-# PAGES PRINCIPALES
-# ==========================================
-
+# Page principale de chat - OPTIMISÉE MOBILE
 def main_chat_page():
     """Page principale de chat avec l'assistant FPA"""
     
+    mobile = is_mobile()
+    
     st.markdown(f"""
     <div class="banner">
-        <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
-        <p>Votre partenaire intelligent pour la conception et l'amélioration de vos formations professionnelles</p>
-        <div class="user-info">
-            👤 Connecté en tant que : {st.user.name} ({st.user.email})
-        </div>
+        <h1>{"🎓 FPA" if mobile else "🎓 Assistant FPA - Ingénierie de Formation"}</h1>
+        <p>{"Assistant formation" if mobile else "Votre partenaire intelligent pour la conception et l'amélioration de vos formations professionnelles"}</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -833,18 +677,22 @@ def main_chat_page():
             else:
                 st.markdown(f"""
                 <div class="assistant-message">
-                    <strong>Assistant FPA:</strong><br>
+                    <strong>Assistant:</strong><br>
                     {message['content']}
                 </div>
                 """, unsafe_allow_html=True)
 
-        # Input pour le message de l'utilisateur
-        if prompt := st.chat_input("Posez votre question sur la formation professionnelle"):
+        # Input pour le message - optimisé mobile
+        placeholder = "Question formation..." if mobile else "Posez votre question sur la formation professionnelle"
+        
+        if prompt := st.chat_input(placeholder):
+            # Ajouter le message de l'utilisateur
             st.session_state.conversation_history.append({
                 'role': 'user', 
                 'content': prompt
             })
 
+            # Afficher le message
             st.markdown(f"""
             <div class="user-message">
                 <strong>Vous:</strong><br>
@@ -852,14 +700,21 @@ def main_chat_page():
             </div>
             """, unsafe_allow_html=True)
 
-            with st.status("🔍 Recherche en cours...", expanded=True) as status:
-                st.write("📚 Recherche des documents pertinents...")
+            # Générer la réponse
+            status_text = "🔍 Recherche..." if mobile else "🔍 Recherche en cours..."
+            
+            with st.status(status_text, expanded=not mobile) as status:
+                if not mobile:
+                    st.write("📚 Recherche des documents pertinents...")
+                    
                 retrieved_docs = retrieve_documents(
                     st.session_state.vectorstore, 
                     prompt
                 )
                 
-                st.write("🧠 Génération de la réponse...")
+                if not mobile:
+                    st.write("🧠 Génération de la réponse...")
+                    
                 response = generate_context_response(
                     st.session_state.llm, 
                     prompt, 
@@ -867,45 +722,117 @@ def main_chat_page():
                     st.session_state.conversation_history
                 )
                 
-                status.update(label="✅ Recherche terminée", state="complete", expanded=False)
+                status.update(label="✅ Terminé", state="complete", expanded=False)
                 
+            # Afficher la réponse
             st.markdown(f"""
             <div class="assistant-message">
-                <strong>Assistant FPA:</strong><br>
+                <strong>Assistant:</strong><br>
                 {response}
             </div>
             """, unsafe_allow_html=True)
 
+            # Ajouter à l'historique
             st.session_state.conversation_history.append({
                 'role': 'assistant', 
                 'content': response
             })
 
-            with st.expander("📚 Documents sources"):
+            # Sources - collapsed par défaut sur mobile
+            with st.expander("📚 Sources", expanded=not mobile):
                 for i, doc in enumerate(retrieved_docs, 1):
+                    score_display = f"{doc['score']:.2f}" if not mobile else f"{doc['score']:.1f}"
+                    title_display = doc['title'][:50] + "..." if mobile and len(doc['title']) > 50 else doc['title']
+                    
                     st.markdown(f"""
                     <div class="scenario-card">
-                        <h4>Document {i}</h4>
-                        <p><span class="badge badge-blue">Score: {doc['score']:.2f}</span></p>
-                        <p><strong>Titre:</strong> {doc['title']}</p>
+                        <h4>Doc {i}</h4>
+                        <p><span class="badge badge-blue">Score: {score_display}</span></p>
+                        <p><strong>Titre:</strong> {title_display}</p>
                         <hr>
-                        {doc['content']}
+                        {doc['content'][:300] + "..." if mobile and len(doc['content']) > 300 else doc['content']}
                     </div>
                     """, unsafe_allow_html=True)
 
-def scenarisation_page():
-    """Page de scénarisation de formation avec colonnes personnalisables"""
+    # Sidebar avec outils - adapté mobile
+    if not mobile:
+        st.sidebar.markdown("""
+        <div style="text-align: center; margin-bottom: 30px;">
+            <div class="logo" style="margin: 0 auto;">FPA</div>
+            <h3>Assistant Formation</h3>
+        </div>
+        """, unsafe_allow_html=True)
     
-    st.markdown("""
+    sidebar_container = st.sidebar if not mobile else st
+    
+    with sidebar_container:
+        if mobile:
+            st.markdown("### 🛠️ Outils")
+        else:
+            st.markdown("### 🛠️ Outils supplémentaires")
+
+        col1, col2 = st.columns(2) if mobile else (None, None)
+        
+        button_width = not mobile  # use_container_width pour desktop
+        
+        if mobile:
+            with col1:
+                plan_button = st.button("📝 Exemple plan", use_container_width=True)
+            with col2:
+                aide_button = st.button("🔍 Aide ingé.", use_container_width=True)
+        else:
+            plan_button = st.button("📝 Exemple de plan de formation")
+            aide_button = st.button("🔍 Aide à l'ingénierie pédagogique")
+
+        if plan_button:
+            with st.spinner("📝 Génération..."):
+                exemple_plan = generate_example_training_plan(st.session_state.llm)
+                st.markdown(f"""
+                <div class="scenario-card">
+                    <h2>📝 Exemple de Plan</h2>
+                    <div class="info-box">
+                        Ce plan peut servir de modèle.
+                    </div>
+                    {exemple_plan}
+                </div>
+                """, unsafe_allow_html=True)
+
+        if aide_button:
+            with st.spinner("🔍 Génération..."):
+                aide_ingenierie = generate_pedagogical_engineering_advice(st.session_state.llm)
+                st.markdown(f"""
+                <div class="scenario-card">
+                    <h2>🔍 Conseils Ingénierie</h2>
+                    <div class="info-box">
+                        Conseils pour améliorer vos méthodes.
+                    </div>
+                    {aide_ingenierie}
+                </div>
+                """, unsafe_allow_html=True)
+
+# Page de scénarisation - OPTIMISÉE MOBILE
+def scenarisation_page():
+    """Page de scénarisation de formation"""
+    
+    mobile = is_mobile()
+    
+    st.markdown(f"""
     <div class="banner">
-        <h1>🎯 Scénarisation de Formation</h1>
-        <p>Créez des scénarios pédagogiques adaptés à vos objectifs</p>
+        <h1>{"🎯 Scénarisation" if mobile else "🎯 Scénarisation de Formation"}</h1>
+        <p>{"Créez des scénarios adaptés" if mobile else "Créez des scénarios pédagogiques adaptés à vos objectifs"}</p>
     </div>
     """, unsafe_allow_html=True)
     
-    left_col, right_col = st.columns([2, 1])
+    # Layout adaptatif
+    if mobile:
+        # Sur mobile : tout en vertical
+        main_col = st.container()
+        side_col = st.container()
+    else:
+        # Sur desktop : 2 colonnes
+        main_col, side_col = st.columns([2, 1])
     
-    with left_col:
+    with main_col:
         st.markdown("""
         <div class="scenario-card">
             <h3>📋 Paramètres du scénario</h3>
@@ -913,12 +840,22 @@ def scenarisation_page():
         
         input_type = st.selectbox(
             "Type d'entrée",
-            ["Programme", "Compétences"]
+            ["Titre", "Programme", "Compétences"],
+            help="Choisissez le type de contenu à utiliser"
         )
         
-        input_data = st.text_area(f"Contenu de {input_type.lower()}", 
-            height=150,
-            placeholder=f"Saisissez ici votre {input_type.lower()} de formation..."
+        # TextArea adapté mobile
+        placeholder_text = {
+            "Titre": "Ex: Formation à la communication interpersonnelle",
+            "Programme": "Ex: Module 1: Les bases\nModule 2: Pratique\n...",
+            "Compétences": "Ex: Savoir communiquer efficacement\nÊtre capable de..."
+        }
+        
+        input_data = st.text_area(
+            f"Contenu de {input_type.lower()}", 
+            height=120 if mobile else 150,
+            placeholder=placeholder_text[input_type],
+            help=f"Décrivez votre {input_type.lower()} de formation"
         )
         
         st.markdown("</div>", unsafe_allow_html=True)
@@ -928,34 +865,41 @@ def scenarisation_page():
             <h3>⏱️ Durée de formation</h3>
         """, unsafe_allow_html=True)
         
-        col1, col2 = st.columns(2)
-        with col1:
+        # Layout durée adapté mobile
+        if mobile:
             duration_hours = st.number_input("Heures", min_value=0, max_value=40, value=3, step=1)
-        with col2:
-            duration_minutes = st.number_input("Minutes supplémentaires", min_value=0, max_value=59, value=30, step=5)
+            duration_minutes = st.number_input("Minutes", min_value=0, max_value=59, value=30, step=5)
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                duration_hours = st.number_input("Heures", min_value=0, max_value=40, value=3, step=1)
+            with col2:
+                duration_minutes = st.number_input("Minutes supplémentaires", min_value=0, max_value=59, value=30, step=5)
         
         total_duration_minutes = (duration_hours * 60) + duration_minutes
         
+        # Affichage durée total adapté
+        duration_text = f"{duration_hours}h{duration_minutes if duration_minutes > 0 else ''}"
+        
         st.markdown(f"""
-        <div style="margin-top: 10px; margin-bottom: 10px;">
-            <span style="background: {COLORS['primary']}; color: white; padding: 5px 10px; border-radius: 5px; font-size: 1rem;">
-                ⏱️ Durée totale: {duration_hours}h{duration_minutes if duration_minutes > 0 else ''} ({total_duration_minutes} minutes)
+        <div style="margin: 10px 0;">
+            <span style="background: {COLORS['primary']}; color: white; padding: 5px 10px; border-radius: 5px; font-size: {'0.9rem' if mobile else '1rem'};">
+                ⏱️ Durée: {duration_text} ({total_duration_minutes} min)
             </span>
         </div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Interface de sélection des colonnes
-        selected_columns = column_selector_interface()
+        # Bouton de génération
+        button_text = "✨ Générer le scénario" if mobile else "✨ Générer le scénario de formation"
         
-        if st.button("✨ Générer le scénario de formation", use_container_width=True):
-            if input_data and selected_columns:
+        if st.button(button_text, use_container_width=True):
+            if input_data:
                 user_content = f"""
                 <div>
-                    <p><strong>Type d'entrée:</strong> {input_type}</p>
-                    <p><strong>Contenu:</strong> {input_data}</p>
-                    <p><strong>Durée:</strong> {duration_hours}h{duration_minutes if duration_minutes > 0 else ''} ({total_duration_minutes} minutes)</p>
-                    <p><strong>Colonnes du tableau:</strong> {', '.join(selected_columns)}</p>
+                    <p><strong>Type:</strong> {input_type}</p>
+                    <p><strong>Contenu:</strong> {input_data[:100] + "..." if mobile and len(input_data) > 100 else input_data}</p>
+                    <p><strong>Durée:</strong> {duration_text} ({total_duration_minutes} min)</p>
                 </div>
                 """
                 
@@ -971,11 +915,15 @@ def scenarisation_page():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                with st.status("🎯 Création de votre scénario de formation...", expanded=True) as status:
+                # Génération adaptée mobile
+                status_text = "🎯 Création..." if mobile else "🎯 Création de votre scénario de formation..."
+                
+                with st.status(status_text, expanded=not mobile) as status:
                     input_type_lower = input_type.lower()
                     
                     if input_type_lower == 'competences':
-                        st.write("🔄 Reformulation des compétences selon l'approche par compétences...")
+                        if not mobile:
+                            st.write("🔄 Reformulation des compétences...")
                         reformulated_competencies = reformulate_competencies_apc(
                             st.session_state.llm,
                             st.session_state.vectorstore,
@@ -983,28 +931,23 @@ def scenarisation_page():
                         )
                         input_data = reformulated_competencies
                     
-                    st.write("📝 Génération du scénario pédagogique...")
-                    
-                    # Conversion des colonnes sélectionnées en structure CSV
-                    csv_structure = convert_columns_to_csv_structure(selected_columns)
-                    
-                    # Appel modifié avec la structure CSV personnalisée
+                    if not mobile:
+                        st.write("📝 Génération du scénario pédagogique...")
                     scenario = generate_structured_training_scenario(
                         st.session_state.llm,
                         st.session_state.vectorstore,
                         input_data,
                         input_type_lower,
-                        total_duration_minutes,
-                        custom_csv_structure=csv_structure
+                        total_duration_minutes
                     )
                     
-                    status.update(label="✅ Scénario terminé!", state="complete", expanded=False)
+                    status.update(label="✅ Terminé!", state="complete", expanded=False)
                 
                 st.markdown(f"""
                 <div class="assistant-message">
-                    <h3>📋 Votre Scénario de Formation</h3>
+                    <h3>📋 {"Scénario" if mobile else "Votre Scénario de Formation"}</h3>
                     <div class="info-box">
-                        Ce scénario a été généré en fonction de vos paramètres et colonnes sélectionnées.
+                        {"Scénario généré selon vos paramètres." if mobile else "Ce scénario a été généré en fonction de vos paramètres."}
                     </div>
                     {scenario}
                 </div>
@@ -1014,106 +957,64 @@ def scenarisation_page():
                     'role': 'assistant', 
                     'content': scenario
                 })
-            elif not input_data:
+            else:
                 st.warning("⚠️ Veuillez saisir un contenu pour générer le scénario.")
-            elif not selected_columns:
-                st.warning("⚠️ Veuillez sélectionner au moins une colonne pour le tableau.")
                 
-    with right_col:
-        st.markdown("""
+    with side_col:
+        if mobile:
+            st.markdown("---")  # Séparateur sur mobile
+            
+        st.markdown(f"""
         <div class="scenario-card">
-            <h3>💡 Guide de scénarisation</h3>
-            <p>Pour créer un scénario de formation efficace:</p>
+            <h3>💡 {"Guide" if mobile else "Guide de scénarisation"}</h3>
+            <p>{"Pour créer un scénario efficace:" if mobile else "Pour créer un scénario de formation efficace:"}</p>
             <ol>
-                <li><strong>Choisissez un type d'entrée</strong></li>
-                <li><strong>Définissez le contenu</strong> avec détails</li>
-                <li><strong>Ajustez la durée</strong> selon vos contraintes</li>
-                <li><strong>Personnalisez les colonnes</strong> du tableau</li>
-                <li><strong>Générez votre scénario</strong></li>
+                <li><strong>{"Type d'entrée" if mobile else "Choisissez un type d'entrée"}</strong></li>
+                <li><strong>{"Contenu détaillé" if mobile else "Définissez le contenu"}</strong> {"avec détails" if not mobile else ""}</li>
+                <li><strong>{"Durée adaptée" if mobile else "Ajustez la durée"}</strong> {"selon contraintes" if mobile else "selon vos contraintes"}</li>
             </ol>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Historique des scénarisations sur mobile
+        if mobile and st.session_state.scenarisation_history:
+            with st.expander("📜 Historique scénarios"):
+                for i, message in enumerate(st.session_state.scenarisation_history[-3:]):  # 3 derniers sur mobile
+                    if message['role'] == 'assistant':
+                        preview = message['content'][:150] + "..." if len(message['content']) > 150 else message['content']
+                        st.markdown(f"""
+                        <div style="background: {COLORS['dark_gray']}; padding: 8px; border-radius: 5px; margin: 5px 0; font-size: 0.8rem;">
+                            {preview}
+                        </div>
+                        """, unsafe_allow_html=True)
 
-# ==========================================
-# SIDEBAR AVEC OUTILS ET DÉCONNEXION
-# ==========================================
-
-with st.sidebar:
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 30px;">
-        <div class="logo" style="margin: 0 auto;">FPA</div>
-        <h3>Assistant Formation</h3>
-    </div>
-    """, unsafe_allow_html=True)
+# CORRECTION: Onglets de navigation avec gestion mobile
+def main_navigation():
+    """Navigation principale avec adaptation mobile"""
     
-    # Informations utilisateur et déconnexion
-    st.markdown("---")
-    st.markdown(f"**👤 Connecté :** {st.user.name}")
-    st.markdown(f"**📧 Email :** {st.user.email}")
+    mobile = is_mobile()
     
-    if st.button("🚪 Se déconnecter", use_container_width=True):
-        if user_id:
-            save_user_rag_state(user_id)
-        # Correction pour Streamlit Cloud
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.rerun()
-    
-    st.markdown("---")
-    
-    # Guide d'utilisation
-    if st.button("📖 Guide d'utilisation", use_container_width=True, type="secondary"):
-        st.session_state.show_guide = not st.session_state.get('show_guide', False)
-    
-    if st.session_state.get('show_guide', False):
-        with st.expander("📖 Guide complet", expanded=True):
-            show_usage_guide()
-    
-    st.markdown("### 🛠️ Outils supplémentaires")
-
-    if st.button("📝 Exemple de plan de formation"):
-        with st.spinner("📝 Génération d'un exemple de plan..."):
-            exemple_plan = generate_example_training_plan(st.session_state.llm)
-            st.markdown(f"""
-            <div class="scenario-card">
-                <h2>📝 Exemple de Plan de Formation</h2>
-                <div class="info-box">
-                    Ce plan peut servir de modèle pour vos propres formations.
-                </div>
-                {exemple_plan}
-            </div>
-            """, unsafe_allow_html=True)
-
-    if st.button("🔍 Aide à l'ingénierie pédagogique"):
-        with st.spinner("🔍 Génération de conseils..."):
-            aide_ingenierie = generate_pedagogical_engineering_advice(st.session_state.llm)
-            st.markdown(f"""
-            <div class="scenario-card">
-                <h2>🔍 Conseils d'Ingénierie Pédagogique</h2>
-                <div class="info-box">
-                    Conseils pour améliorer vos méthodes d'ingénierie pédagogique.
-                </div>
-                {aide_ingenierie}
-            </div>
-            """, unsafe_allow_html=True)
-
-# ==========================================
-# ONGLETS DE NAVIGATION PRINCIPAL
-# ==========================================
-
-tab1, tab2, tab3 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
-
-with tab1:
-    main_chat_page()
-
-with tab2:
-    scenarisation_page()
-
-with tab3:
-    if user_id:
-        st.session_state.RAG_user = st.session_state.get(f'RAG_user_{user_id}')
-        user_rag_page()
-        st.session_state[f'RAG_user_{user_id}'] = st.session_state.RAG_user
-        save_user_rag_state(user_id)
+    # Labels adaptés mobile
+    if mobile:
+        tab_labels = ["💬 Chat", "🎯 Scénario", "📚 RAG"]
     else:
-        st.error("❌ Erreur lors de la récupération de l'identifiant utilisateur")
+        tab_labels = ["💬 Assistant FPA", "🎯 Scénarisation", "📚 RAG Personnel"]
+    
+    tab1, tab2, tab3 = st.tabs(tab_labels)
+
+    with tab1:
+        main_chat_page()
+
+    with tab2:
+        scenarisation_page()
+
+    with tab3:
+        try:
+            user_rag_page()  # Appel de la fonction pour afficher la page RAG Personnel
+        except Exception as e:
+            st.error(f"❌ Erreur page RAG: {e}")
+            st.info("💡 Assurez-vous que le module user_rag_page est disponible")
+
+# Point d'entrée principal
+if __name__ == "__main__":
+    main_navigation()
