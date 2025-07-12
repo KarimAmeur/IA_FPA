@@ -1426,17 +1426,18 @@ def initialize_system():
 try:
     GOOGLE_CLIENT_ID = st.secrets["GOOGLE_CLIENT_ID"]
     GOOGLE_CLIENT_SECRET = st.secrets["GOOGLE_CLIENT_SECRET"]
-    GOOGLE_REDIRECT_URI = st.secrets["GOOGLE_REDIRECT_URI"]
+    # Utiliser l'URL principale au lieu de /oauth2callback
+    GOOGLE_REDIRECT_URI = "https://p5gywxum4zyvyhauvk2c5q.streamlit.app"
 except KeyError:
     st.error("❌ Configuration OAuth manquante dans les secrets")
     st.stop()
 
 def handle_oauth_callback():
     """Traite le retour de Google OAuth"""
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params  # Corrigé : nouvelle API Streamlit
     
     if 'code' in query_params:
-        code = query_params['code'][0]
+        code = query_params['code']
         
         # Échanger le code contre un token
         token_url = 'https://oauth2.googleapis.com/token'
@@ -1472,14 +1473,14 @@ def handle_oauth_callback():
                 st.session_state['user_data'] = user_info
                 
                 # Nettoyer l'URL
-                st.experimental_set_query_params()
+                st.query_params.clear()  # Corrigé : nouvelle API Streamlit
                 st.rerun()
                 
         except Exception as e:
             st.error(f"❌ Erreur d'authentification: {e}")
 
 # Traiter le callback OAuth
-if 'code' in st.experimental_get_query_params():
+if 'code' in st.query_params:  # Corrigé : nouvelle API Streamlit
     handle_oauth_callback()
 
 # Vérification de l'authentification manuelle
@@ -1494,17 +1495,14 @@ if not st.session_state.get('google_authenticated', False):
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # URL d'authentification Google manuelle
-        import urllib.parse
-        params = {
-            'client_id': GOOGLE_CLIENT_ID,
-            'redirect_uri': GOOGLE_REDIRECT_URI,
-            'scope': 'openid email profile',
-            'response_type': 'code',
-            'access_type': 'offline',
-            'prompt': 'select_account'
-        }
-        auth_url = f"https://accounts.google.com/o/oauth2/auth?{urllib.parse.urlencode(params)}"
+        # URL d'authentification Google simplifiée
+        auth_url = (
+            f"https://accounts.google.com/o/oauth2/auth"
+            f"?client_id={GOOGLE_CLIENT_ID}"
+            f"&redirect_uri={urllib.parse.quote(GOOGLE_REDIRECT_URI, safe='')}"
+            f"&scope=openid%20email%20profile"
+            f"&response_type=code"
+        )
         
         st.markdown(f"""
         <div style="text-align: center;">
