@@ -1,4 +1,23 @@
-# PATCH POUR STREAMLIT CLOUD - À placer en tout début de app.py
+/* BOUTONS SELON CHARTE EDSET */
+        .stButton>button {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
+            color: white !important;  /* TEXTE EN BLANC - MODIFIÉ ICI */
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
+            letter-spacing: -0.025em;
+        }}
+        
+        .stButton>button:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(29, 91, 104, 0.35);
+            background: linear-gradient(135deg, {COLORS["accent"]} 0%, {COLORS["primary"]} 100%);
+            color: white !important;  /* TEXTE EN BLANC AU HOVER# PATCH POUR STREAMLIT CLOUD - À placer en tout début de app.py
 try:
     __import__('pysqlite3')
     import sys
@@ -176,7 +195,7 @@ def local_css():
         /* BOUTONS SELON CHARTE EDSET */
         .stButton>button {{
             background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
-            color: white !important;  /* TEXTE EN BLANC - MODIFIÉ ICI */
+            color: white !important;
             border: none;
             border-radius: 12px;
             padding: 12px 24px;
@@ -188,16 +207,21 @@ def local_css():
             letter-spacing: -0.025em;
         }}
         
+        /* TEXTE BLANC SPÉCIFIQUE */
+        .stButton button {{
+            color: white !important;
+        }}
+        
         .stButton>button:hover {{
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(29, 91, 104, 0.35);
             background: linear-gradient(135deg, {COLORS["accent"]} 0%, {COLORS["primary"]} 100%);
-            color: white !important;  /* TEXTE EN BLANC AU HOVER AUSSI */
+            color: white !important;
         }}
         
         .stButton>button:active {{
             transform: translateY(0);
-            color: white !important;  /* TEXTE EN BLANC QUAND CLIQUÉ */
+            color: white !important;
         }}
         
         /* BOUTONS SECONDAIRES EDSET */
