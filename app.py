@@ -13,13 +13,6 @@ import shutil
 from pathlib import Path
 from typing import List
 import requests
-import urllib.parse
-import secrets
-import hashlib
-import hmac
-import base64
-import json
-from datetime import datetime, timedelta
 
 # CORRECTION: Import corrigé pour Chroma (version compatible)
 try:
@@ -43,7 +36,19 @@ from user_rag_page import user_rag_page
 # CORRECTION: Import de l'API Mistral pour les embeddings
 from mistralai.client import MistralClient
 
-# Configuration des APIs et AUTH - Utilise les secrets Streamlit
+# ==========================================
+# UTILISATION DU COMPOSANT STREAMLIT-OAUTH
+# ==========================================
+
+# Vérifier si streamlit-oauth est installé
+try:
+    from streamlit_oauth import OAuth2Component
+    OAUTH_AVAILABLE = True
+except ImportError:
+    OAUTH_AVAILABLE = False
+    st.error("❌ Le package streamlit-oauth n'est pas installé. Ajoutez 'streamlit-oauth' à votre requirements.txt")
+
+# Configuration des APIs - Utilise les secrets Streamlit
 try:
     MISTRAL_API_KEY = st.secrets["MISTRAL_API_KEY"]
     HUGGINGFACE_TOKEN = st.secrets["HUGGINGFACE_TOKEN"]
@@ -52,7 +57,6 @@ try:
     GOOGLE_CLIENT_ID = st.secrets["auth"]["client_id"]
     GOOGLE_CLIENT_SECRET = st.secrets["auth"]["client_secret"]
     GOOGLE_REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
-    COOKIE_SECRET = st.secrets["auth"]["cookie_secret"]
     
 except Exception as e:
     st.error(f"❌ Erreur de configuration des secrets: {e}")
@@ -63,189 +67,38 @@ if HUGGINGFACE_TOKEN:
     os.environ["HUGGINGFACE_HUB_TOKEN"] = HUGGINGFACE_TOKEN
 
 # ==========================================
-# CLASSE GOOGLE OAUTH
+# GESTION DE L'AUTHENTIFICATION OAUTH
 # ==========================================
 
-class GoogleOAuth:
-    def __init__(self, client_id, client_secret, redirect_uri):
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.redirect_uri = redirect_uri
-        self.auth_url = "https://accounts.google.com/o/oauth2/auth"
-        self.token_url = "https://oauth2.googleapis.com/token"
-        self.userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
-    
-    def get_authorization_url(self, state):
-        """Génère l'URL d'autorisation Google"""
-        params = {
-            'client_id': self.client_id,
-            'redirect_uri': self.redirect_uri,
-            'scope': 'openid email profile',
-            'response_type': 'code',
-            'state': state,
-            'access_type': 'offline',
-            'prompt': 'consent'
-        }
-        return f"{self.auth_url}?{urllib.parse.urlencode(params)}"
-    
-    def exchange_code_for_token(self, code):
-        """Échange le code d'autorisation contre un token d'accès"""
-        data = {
-            'client_id': self.client_id,
-            'client_secret': self.client_secret,
-            'code': code,
-            'grant_type': 'authorization_code',
-            'redirect_uri': self.redirect_uri
-        }
-        
-        response = requests.post(self.token_url, data=data)
-        if response.status_code == 200:
-            return response.json()
+def init_oauth():
+    """Initialise le composant OAuth2 Google"""
+    if not OAUTH_AVAILABLE:
         return None
     
-    def get_user_info(self, access_token):
-        """Récupère les informations utilisateur avec le token d'accès"""
-        headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get(self.userinfo_url, headers=headers)
-        if response.status_code == 200:
-            return response.json()
-        return None
+    return OAuth2Component(
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        authorize_endpoint="https://accounts.google.com/o/oauth2/v2/auth",
+        token_endpoint="https://oauth2.googleapis.com/token",
+        refresh_token_endpoint="https://oauth2.googleapis.com/token",
+        revoke_token_endpoint="https://oauth2.googleapis.com/revoke",
+    )
 
-# ==========================================
-# GESTION DE L'AUTHENTIFICATION
-# ==========================================
-
-def generate_state():
-    """Génère un état sécurisé pour OAuth"""
-    return secrets.token_urlsafe(32)
-
-def verify_state(state, stored_state):
-    """Vérifie l'état OAuth"""
-    return hmac.compare_digest(state, stored_state)
-
-def create_session_token(user_info):
-    """Crée un token de session sécurisé"""
-    data = {
-        'user_id': user_info['id'],
-        'email': user_info['email'],
-        'name': user_info['name'],
-        'picture': user_info.get('picture', ''),
-        'timestamp': datetime.now().isoformat()
-    }
+def check_authentication():
+    """Vérifie l'authentification avec streamlit-oauth"""
+    if not OAUTH_AVAILABLE:
+        return False
     
-    # Créer un token signé
-    message = base64.b64encode(json.dumps(data).encode()).decode()
-    signature = hmac.new(
-        COOKIE_SECRET.encode(),
-        message.encode(),
-        hashlib.sha256
-    ).hexdigest()
-    
-    return f"{message}.{signature}"
-
-def verify_session_token(token):
-    """Vérifie et décode un token de session"""
-    try:
-        if '.' not in token:
-            return None
-            
-        message, signature = token.rsplit('.', 1)
-        
-        # Vérifier la signature
-        expected_signature = hmac.new(
-            COOKIE_SECRET.encode(),
-            message.encode(),
-            hashlib.sha256
-        ).hexdigest()
-        
-        if not hmac.compare_digest(signature, expected_signature):
-            return None
-        
-        # Décoder les données
-        data = json.loads(base64.b64decode(message).decode())
-        
-        # Vérifier que le token n'est pas expiré (24h)
-        token_time = datetime.fromisoformat(data['timestamp'])
-        if datetime.now() - token_time > timedelta(hours=24):
-            return None
-        
-        return data
-    except Exception:
-        return None
-
-def handle_oauth_callback():
-    """Gère le callback OAuth de Google"""
-    query_params = st.query_params
-    
-    if 'code' in query_params and 'state' in query_params:
-        code = query_params['code']
-        state = query_params['state']
-        
-        # Vérifier l'état
-        stored_state = st.session_state.get('oauth_state')
-        if not stored_state or not verify_state(state, stored_state):
-            st.error("❌ Erreur de sécurité: état OAuth invalide")
-            return False
-        
-        # Échanger le code contre un token
-        oauth = GoogleOAuth(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)
-        token_data = oauth.exchange_code_for_token(code)
-        
-        if not token_data or 'access_token' not in token_data:
-            st.error("❌ Erreur lors de l'obtention du token d'accès")
-            return False
-        
-        # Obtenir les informations utilisateur
-        user_info = oauth.get_user_info(token_data['access_token'])
-        if not user_info:
-            st.error("❌ Erreur lors de la récupération des informations utilisateur")
-            return False
-        
-        # Créer le token de session
-        session_token = create_session_token(user_info)
-        
-        # Stocker dans la session
-        st.session_state.auth_token = session_token
-        st.session_state.user_info = user_info
-        st.session_state.authenticated = True
-        
-        # Nettoyer les paramètres de l'URL
-        st.query_params.clear()
-        
+    # Vérifier si l'utilisateur est déjà authentifié
+    if 'auth_token' in st.session_state and 'user_info' in st.session_state:
         return True
     
     return False
 
-def check_authentication():
-    """Vérifie l'authentification de l'utilisateur"""
-    # Vérifier d'abord le callback OAuth
-    if handle_oauth_callback():
-        st.rerun()
-    
-    # Vérifier le token de session existant
-    if 'auth_token' in st.session_state:
-        user_data = verify_session_token(st.session_state.auth_token)
-        if user_data:
-            st.session_state.user_info = user_data
-            st.session_state.authenticated = True
-            return True
-        else:
-            # Token expiré ou invalide
-            clear_session()
-    
-    return False
-
-def clear_session():
-    """Nettoie la session utilisateur"""
-    keys_to_remove = ['auth_token', 'user_info', 'authenticated', 'oauth_state']
-    for key in keys_to_remove:
-        if key in st.session_state:
-            del st.session_state[key]
-
 def show_login_page():
     """Affiche la page de connexion avec Google OAuth"""
     st.markdown("""
-    <div class="auth-container">
+    <div style="text-align: center; margin: 50px 0;">
         <h1>🎓 Assistant FPA</h1>
         <h2>Ingénierie de Formation</h2>
         <p style="font-size: 1.2rem; margin: 30px 0;">
@@ -265,38 +118,57 @@ def show_login_page():
     </div>
     """, unsafe_allow_html=True)
     
+    if not OAUTH_AVAILABLE:
+        st.error("❌ Le composant OAuth n'est pas disponible. Vérifiez votre requirements.txt")
+        return
+    
+    # Centrer le bouton de connexion
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🔐 Se connecter avec Google", 
-                    type="primary", 
-                    use_container_width=True):
+        oauth2 = init_oauth()
+        if oauth2:
+            result = oauth2.authorize_button(
+                name="🔐 Se connecter avec Google",
+                redirect_uri=GOOGLE_REDIRECT_URI,
+                scope="openid email profile",
+                key="google_auth",
+                use_container_width=True
+            )
             
-            # Générer un état sécurisé
-            state = generate_state()
-            st.session_state.oauth_state = state
-            
-            # Créer l'URL d'autorisation
-            oauth = GoogleOAuth(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)
-            auth_url = oauth.get_authorization_url(state)
-            
-            # Rediriger vers Google
-            st.markdown(f'<meta http-equiv="refresh" content="0; url={auth_url}">', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div style="text-align: center; margin-top: 50px; color: #888;">
-        <p>🔒 <strong>Sécurité et confidentialité :</strong></p>
-        <p>• Vos données sont privées et sécurisées</p>
-        <p>• Chaque utilisateur a son propre espace isolé</p>
-        <p>• Aucune donnée partagée entre utilisateurs</p>
-        <p>• Authentification déléguée à Google (OAuth 2.0)</p>
-    </div>
-    """, unsafe_allow_html=True)
+            if result and 'token' in result:
+                # Récupérer les informations utilisateur
+                user_info = get_user_info(result['token']['access_token'])
+                if user_info:
+                    # Stocker dans la session
+                    st.session_state.auth_token = result['token']
+                    st.session_state.user_info = user_info
+                    st.rerun()
+                else:
+                    st.error("❌ Erreur lors de la récupération des informations utilisateur")
+
+def get_user_info(access_token):
+    """Récupère les informations utilisateur avec le token d'accès"""
+    try:
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get("https://www.googleapis.com/oauth2/v2/userinfo", headers=headers)
+        if response.status_code == 200:
+            return response.json()
+    except Exception as e:
+        st.error(f"Erreur API Google: {e}")
+    return None
 
 def get_user_identifier():
     """Récupère l'identifiant utilisateur sécurisé"""
-    if st.session_state.get('authenticated') and 'user_info' in st.session_state:
+    if 'user_info' in st.session_state:
         return st.session_state.user_info['email']
     return None
+
+def logout_user():
+    """Déconnecte l'utilisateur"""
+    keys_to_remove = ['auth_token', 'user_info']
+    for key in keys_to_remove:
+        if key in st.session_state:
+            del st.session_state[key]
 
 # ==========================================
 # CLASSE EMBEDDINGS MISTRAL
@@ -406,16 +278,6 @@ def local_css():
             padding: 30px;
             text-align: center;
             margin: 20px 0;
-        }}
-        
-        .auth-container {{
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            text-align: center;
-            color: white;
         }}
         
         .user-info {{
@@ -1105,7 +967,7 @@ with st.sidebar:
     if st.button("🚪 Se déconnecter", use_container_width=True):
         if user_id:
             save_user_rag_state(user_id)
-        clear_session()
+        logout_user()
         st.cache_data.clear()
         st.cache_resource.clear()
         st.rerun()
