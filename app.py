@@ -13,6 +13,13 @@ import shutil
 from pathlib import Path
 from typing import List
 import requests
+import secrets
+import hashlib
+import hmac
+import base64
+import json
+from datetime import datetime, timedelta
+import urllib.parse
 
 # CORRECTION: Import corrigé pour Chroma (version compatible)
 try:
@@ -37,16 +44,16 @@ from user_rag_page import user_rag_page
 from mistralai.client import MistralClient
 
 # ==========================================
-# UTILISATION DU COMPOSANT STREAMLIT-OAUTH
+# AUTHENTIFICATION AVEC AUTHLIB
 # ==========================================
 
-# Vérifier si streamlit-oauth est installé
 try:
-    from streamlit_oauth import OAuth2Component
-    OAUTH_AVAILABLE = True
+    from authlib.integrations.requests_client import OAuth2Session
+    from authlib.oauth2.rfc6749 import OAuth2Token
+    AUTHLIB_AVAILABLE = True
 except ImportError:
-    OAUTH_AVAILABLE = False
-    st.error("❌ Le package streamlit-oauth n'est pas installé. Ajoutez 'streamlit-oauth' à votre requirements.txt")
+    AUTHLIB_AVAILABLE = False
+    st.error("❌ Le package Authlib n'est pas installé. Ajoutez 'Authlib>=1.3.2' à votre requirements.txt")
 
 # Configuration des APIs - Utilise les secrets Streamlit
 try:
@@ -57,6 +64,7 @@ try:
     GOOGLE_CLIENT_ID = st.secrets["auth"]["client_id"]
     GOOGLE_CLIENT_SECRET = st.secrets["auth"]["client_secret"]
     GOOGLE_REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
+    COOKIE_SECRET = st.secrets["auth"]["cookie_secret"]
     
 except Exception as e:
     st.error(f"❌ Erreur de configuration des secrets: {e}")
@@ -67,36 +75,238 @@ if HUGGINGFACE_TOKEN:
     os.environ["HUGGINGFACE_HUB_TOKEN"] = HUGGINGFACE_TOKEN
 
 # ==========================================
-# GESTION DE L'AUTHENTIFICATION OAUTH
+# CLASSE GOOGLE OAUTH AVEC AUTHLIB
 # ==========================================
 
-def init_oauth():
-    """Initialise le composant OAuth2 Google"""
-    if not OAUTH_AVAILABLE:
-        return None
+class GoogleOAuthManager:
+    """Gestionnaire OAuth Google avec Authlib"""
     
-    return OAuth2Component(
-        client_id=GOOGLE_CLIENT_ID,
-        client_secret=GOOGLE_CLIENT_SECRET,
-        authorize_endpoint="https://accounts.google.com/o/oauth2/v2/auth",
-        token_endpoint="https://oauth2.googleapis.com/token",
-        refresh_token_endpoint="https://oauth2.googleapis.com/token",
-        revoke_token_endpoint="https://oauth2.googleapis.com/revoke",
-    )
+    def __init__(self):
+        self.client_id = GOOGLE_CLIENT_ID
+        self.client_secret = GOOGLE_CLIENT_SECRET
+        self.redirect_uri = GOOGLE_REDIRECT_URI
+        self.scope = 'openid email profile'
+        self.authorization_endpoint = 'https://accounts.google.com/o/oauth2/v2/auth'
+        self.token_endpoint = 'https://oauth2.googleapis.com/token'
+        self.userinfo_endpoint = 'https://www.googleapis.com/oauth2/v2/userinfo'
+    
+    def create_oauth_session(self, state=None):
+        """Crée une session OAuth2 avec Authlib"""
+        return OAuth2Session(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            scope=self.scope,
+            redirect_uri=self.redirect_uri,
+            state=state
+        )
+    
+    def generate_authorization_url(self):
+        """Génère l'URL d'autorisation avec état sécurisé"""
+        # Générer un état sécurisé
+        state = secrets.token_urlsafe(32)
+        
+        # Créer la session OAuth
+        oauth = self.create_oauth_session(state=state)
+        
+        # Générer l'URL d'autorisation
+        authorization_url, state = oauth.create_authorization_url(
+            self.authorization_endpoint,
+            access_type='offline',
+            prompt='consent'
+        )
+        
+        # Stocker l'état dans la session
+        st.session_state.oauth_state = state
+        
+        return authorization_url
+    
+    def handle_callback(self, authorization_response_url):
+        """Traite le callback d'autorisation et récupère le token"""
+        try:
+            # Vérifier l'état
+            parsed_url = urllib.parse.urlparse(authorization_response_url)
+            params = urllib.parse.parse_qs(parsed_url.query)
+            
+            received_state = params.get('state', [None])[0]
+            stored_state = st.session_state.get('oauth_state')
+            
+            if not received_state or not stored_state or received_state != stored_state:
+                return None, "État OAuth invalide"
+            
+            # Créer la session OAuth avec l'état stocké
+            oauth = self.create_oauth_session(state=stored_state)
+            
+            # Échanger le code contre un token
+            token = oauth.fetch_token(
+                self.token_endpoint,
+                authorization_response=authorization_response_url
+            )
+            
+            return token, None
+            
+        except Exception as e:
+            return None, f"Erreur lors du callback OAuth: {str(e)}"
+    
+    def get_user_info(self, token):
+        """Récupère les informations utilisateur avec le token"""
+        try:
+            # Créer une session avec le token
+            oauth = OAuth2Session(
+                client_id=self.client_id,
+                token=token
+            )
+            
+            # Récupérer les informations utilisateur
+            resp = oauth.get(self.userinfo_endpoint)
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                return None
+                
+        except Exception as e:
+            st.error(f"Erreur lors de la récupération des infos utilisateur: {e}")
+            return None
+
+# ==========================================
+# GESTION DES SESSIONS SÉCURISÉES
+# ==========================================
+
+def create_secure_session_token(user_info):
+    """Crée un token de session sécurisé"""
+    data = {
+        'user_id': user_info['id'],
+        'email': user_info['email'],
+        'name': user_info['name'],
+        'picture': user_info.get('picture', ''),
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    # Créer un token signé avec HMAC
+    message = base64.b64encode(json.dumps(data).encode()).decode()
+    signature = hmac.new(
+        COOKIE_SECRET.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    return f"{message}.{signature}"
+
+def verify_session_token(token):
+    """Vérifie et décode un token de session"""
+    try:
+        if not token or '.' not in token:
+            return None
+            
+        message, signature = token.rsplit('.', 1)
+        
+        # Vérifier la signature
+        expected_signature = hmac.new(
+            COOKIE_SECRET.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(signature, expected_signature):
+            return None
+        
+        # Décoder les données
+        data = json.loads(base64.b64decode(message).decode())
+        
+        # Vérifier l'expiration (24h)
+        token_time = datetime.fromisoformat(data['timestamp'])
+        if datetime.now() - token_time > timedelta(hours=24):
+            return None
+        
+        return data
+        
+    except Exception:
+        return None
+
+# ==========================================
+# GESTION DE L'AUTHENTIFICATION
+# ==========================================
 
 def check_authentication():
-    """Vérifie l'authentification avec streamlit-oauth"""
-    if not OAUTH_AVAILABLE:
+    """Vérifie l'authentification de l'utilisateur"""
+    if not AUTHLIB_AVAILABLE:
         return False
     
-    # Vérifier si l'utilisateur est déjà authentifié
-    if 'auth_token' in st.session_state and 'user_info' in st.session_state:
-        return True
+    # Vérifier d'abord le callback OAuth dans l'URL
+    query_params = st.query_params
+    
+    if 'code' in query_params and 'state' in query_params:
+        handle_oauth_callback()
+        return st.session_state.get('authenticated', False)
+    
+    # Vérifier le token de session existant
+    if 'session_token' in st.session_state:
+        user_data = verify_session_token(st.session_state.session_token)
+        if user_data:
+            st.session_state.user_info = user_data
+            st.session_state.authenticated = True
+            return True
+        else:
+            # Token expiré ou invalide
+            clear_session()
     
     return False
 
+def handle_oauth_callback():
+    """Traite le callback OAuth de Google"""
+    oauth_manager = GoogleOAuthManager()
+    
+    # Construire l'URL de réponse d'autorisation
+    query_params = st.query_params
+    current_url = st.context.headers.get('host', 'localhost:8501')
+    protocol = 'https://' if 'streamlit.app' in current_url else 'http://'
+    
+    callback_url = f"{protocol}{current_url}{st.context.pathname}"
+    if query_params:
+        callback_url += '?' + '&'.join([f"{k}={v}" for k, v in query_params.items()])
+    
+    # Traiter le callback
+    token, error = oauth_manager.handle_callback(callback_url)
+    
+    if error:
+        st.error(f"❌ Erreur d'authentification: {error}")
+        return
+    
+    if not token:
+        st.error("❌ Aucun token reçu")
+        return
+    
+    # Récupérer les informations utilisateur
+    user_info = oauth_manager.get_user_info(token)
+    
+    if not user_info:
+        st.error("❌ Impossible de récupérer les informations utilisateur")
+        return
+    
+    # Créer le token de session sécurisé
+    session_token = create_secure_session_token(user_info)
+    
+    # Stocker dans la session
+    st.session_state.session_token = session_token
+    st.session_state.user_info = user_info
+    st.session_state.authenticated = True
+    
+    # Nettoyer l'URL
+    st.query_params.clear()
+    st.rerun()
+
+def clear_session():
+    """Nettoie la session utilisateur"""
+    keys_to_remove = ['session_token', 'user_info', 'authenticated', 'oauth_state']
+    for key in keys_to_remove:
+        if key in st.session_state:
+            del st.session_state[key]
+
 def show_login_page():
     """Affiche la page de connexion avec Google OAuth"""
+    if not AUTHLIB_AVAILABLE:
+        st.error("❌ Authlib n'est pas installé. Ajoutez 'Authlib>=1.3.2' à votre requirements.txt")
+        return
+    
     st.markdown("""
     <div style="text-align: center; margin: 50px 0;">
         <h1>🎓 Assistant FPA</h1>
@@ -118,57 +328,27 @@ def show_login_page():
     </div>
     """, unsafe_allow_html=True)
     
-    if not OAUTH_AVAILABLE:
-        st.error("❌ Le composant OAuth n'est pas disponible. Vérifiez votre requirements.txt")
-        return
-    
-    # Centrer le bouton de connexion
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        oauth2 = init_oauth()
-        if oauth2:
-            result = oauth2.authorize_button(
-                name="🔐 Se connecter avec Google",
-                redirect_uri=GOOGLE_REDIRECT_URI,
-                scope="openid email profile",
-                key="google_auth",
-                use_container_width=True
-            )
+        if st.button("🔐 Se connecter avec Google", 
+                    type="primary", 
+                    use_container_width=True):
             
-            if result and 'token' in result:
-                # Récupérer les informations utilisateur
-                user_info = get_user_info(result['token']['access_token'])
-                if user_info:
-                    # Stocker dans la session
-                    st.session_state.auth_token = result['token']
-                    st.session_state.user_info = user_info
-                    st.rerun()
-                else:
-                    st.error("❌ Erreur lors de la récupération des informations utilisateur")
-
-def get_user_info(access_token):
-    """Récupère les informations utilisateur avec le token d'accès"""
-    try:
-        headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get("https://www.googleapis.com/oauth2/v2/userinfo", headers=headers)
-        if response.status_code == 200:
-            return response.json()
-    except Exception as e:
-        st.error(f"Erreur API Google: {e}")
-    return None
+            # Créer le gestionnaire OAuth
+            oauth_manager = GoogleOAuthManager()
+            
+            # Générer l'URL d'autorisation
+            auth_url = oauth_manager.generate_authorization_url()
+            
+            # Rediriger vers Google
+            st.markdown(f'<meta http-equiv="refresh" content="0; url={auth_url}">', unsafe_allow_html=True)
+            st.info("🔄 Redirection vers Google...")
 
 def get_user_identifier():
     """Récupère l'identifiant utilisateur sécurisé"""
-    if 'user_info' in st.session_state:
+    if st.session_state.get('authenticated') and 'user_info' in st.session_state:
         return st.session_state.user_info['email']
     return None
-
-def logout_user():
-    """Déconnecte l'utilisateur"""
-    keys_to_remove = ['auth_token', 'user_info']
-    for key in keys_to_remove:
-        if key in st.session_state:
-            del st.session_state[key]
 
 # ==========================================
 # CLASSE EMBEDDINGS MISTRAL
@@ -588,7 +768,7 @@ elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"
     st.stop()
 
 # ==========================================
-# FONCTIONS DE PAGES (identiques à avant mais raccourcies)
+# FONCTIONS DE PAGES (raccourcies pour l'exemple)
 # ==========================================
 
 def get_default_scenario_columns():
@@ -598,126 +778,6 @@ def get_default_scenario_columns():
         "RÉPARTITION DES APPRENANTS", "ACTIVITÉS - Formateur", "ACTIVITÉS - Apprenants", 
         "RESSOURCES et MATÉRIEL", "ÉVALUATION - Type", "ÉVALUATION - Sujet"
     ]
-
-def column_selector_interface():
-    """Interface pour sélectionner les colonnes du tableau de scénarisation"""
-    st.markdown("""
-    <div class="scenario-card">
-        <h3>📋 Personnalisation du tableau de scénarisation</h3>
-        <p>Sélectionnez les colonnes que vous souhaitez inclure dans votre tableau de scénarisation :</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    default_columns = get_default_scenario_columns()
-    
-    if 'selected_columns' not in st.session_state:
-        st.session_state.selected_columns = default_columns.copy()
-    
-    if 'custom_columns' not in st.session_state:
-        st.session_state.custom_columns = []
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.markdown("**📊 Colonnes disponibles :**")
-        
-        selected_defaults = []
-        for col in default_columns:
-            if st.checkbox(col, value=col in st.session_state.selected_columns, key=f"default_{col}"):
-                selected_defaults.append(col)
-        
-        if st.session_state.custom_columns:
-            st.markdown("**✨ Colonnes personnalisées :**")
-            selected_customs = []
-            for col in st.session_state.custom_columns:
-                if st.checkbox(col, value=col in st.session_state.selected_columns, key=f"custom_{col}"):
-                    selected_customs.append(col)
-        else:
-            selected_customs = []
-        
-        st.session_state.selected_columns = selected_defaults + selected_customs
-    
-    with col2:
-        st.markdown("**➕ Ajouter une colonne personnalisée :**")
-        
-        new_column = st.text_input(
-            "Nom de la nouvelle colonne",
-            placeholder="Ex: MATÉRIEL SPÉCIFIQUE",
-            key="new_column_input"
-        )
-        
-        if st.button("➕ Ajouter", type="secondary", use_container_width=True):
-            if new_column and new_column not in default_columns and new_column not in st.session_state.custom_columns:
-                st.session_state.custom_columns.append(new_column)
-                st.session_state.selected_columns.append(new_column)
-                st.rerun()
-            elif new_column in default_columns or new_column in st.session_state.custom_columns:
-                st.warning("⚠️ Cette colonne existe déjà")
-        
-        if st.session_state.custom_columns:
-            st.markdown("**🗑️ Gérer les colonnes personnalisées :**")
-            col_to_remove = st.selectbox(
-                "Supprimer une colonne",
-                [""] + st.session_state.custom_columns,
-                key="remove_column_select"
-            )
-            
-            if st.button("🗑️ Supprimer", type="secondary", use_container_width=True):
-                if col_to_remove:
-                    st.session_state.custom_columns.remove(col_to_remove)
-                    if col_to_remove in st.session_state.selected_columns:
-                        st.session_state.selected_columns.remove(col_to_remove)
-                    st.rerun()
-        
-        if st.button("🔄 Réinitialiser", type="secondary", use_container_width=True):
-            st.session_state.selected_columns = default_columns.copy()
-            st.session_state.custom_columns = []
-            st.rerun()
-    
-    if st.session_state.selected_columns:
-        st.markdown("**✅ Colonnes sélectionnées pour le tableau :**")
-        cols_text = " | ".join(st.session_state.selected_columns)
-        st.info(f"📋 {cols_text}")
-        return st.session_state.selected_columns
-    else:
-        st.warning("⚠️ Veuillez sélectionner au moins une colonne")
-        return []
-
-def convert_columns_to_csv_structure(selected_columns):
-    """Convertit la liste des colonnes sélectionnées en structure CSV pour le prompt"""
-    header = "\t".join(selected_columns)
-    
-    example_row = []
-    for col in selected_columns:
-        if "DURÉE" in col.upper():
-            example_row.append("20 min")
-        elif "HORAIRES" in col.upper():
-            example_row.append("9h00-9h20")
-        elif "CONTENU" in col.upper():
-            example_row.append("Introduction à la formation")
-        elif "OBJECTIFS" in col.upper():
-            example_row.append("Identifier le niveau initial des participants")
-        elif "MÉTHODE" in col.upper():
-            example_row.append("transmissive")
-        elif "RÉPARTITION" in col.upper():
-            example_row.append("groupe entier")
-        elif "FORMATEUR" in col.upper() or ("ACTIVITÉS" in col.upper() and "FORMATEUR" in col.upper()):
-            example_row.append("présentation du formateur, du programme")
-        elif "APPRENANT" in col.upper() or ("ACTIVITÉS" in col.upper() and "APPRENANT" in col.upper()):
-            example_row.append("écoute active, questions")
-        elif "RESSOURCES" in col.upper() or "MATÉRIEL" in col.upper():
-            example_row.append("présentation PowerPoint, liste des participants")
-        elif "ÉVALUATION" in col.upper() and "TYPE" in col.upper():
-            example_row.append("diagnostique")
-        elif "ÉVALUATION" in col.upper() and "SUJET" in col.upper():
-            example_row.append("connaissances préalables")
-        elif "ÉVALUATION" in col.upper():
-            example_row.append("formative")
-        else:
-            example_row.append("À compléter")
-    
-    example_line = "\t".join(example_row)
-    return f"{header}\n{example_line}"
 
 def main_chat_page():
     """Page principale de chat avec l'assistant FPA"""
@@ -783,148 +843,10 @@ def main_chat_page():
                 'content': response
             })
 
-            with st.expander("📚 Documents sources"):
-                for i, doc in enumerate(retrieved_docs, 1):
-                    st.markdown(f"""
-                    <div class="scenario-card">
-                        <h4>Document {i}</h4>
-                        <p><span class="badge badge-blue">Score: {doc['score']:.2f}</span></p>
-                        <p><strong>Titre:</strong> {doc['title']}</p>
-                        <hr>
-                        {doc['content']}
-                    </div>
-                    """, unsafe_allow_html=True)
-
 def scenarisation_page():
-    """Page de scénarisation de formation avec colonnes personnalisables"""
-    
-    left_col, right_col = st.columns([2, 1])
-    
-    with left_col:
-        st.markdown("""
-        <div class="scenario-card">
-            <h3>📋 Paramètres du scénario</h3>
-        """, unsafe_allow_html=True)
-        
-        input_type = st.selectbox(
-            "Type d'entrée",
-            ["Programme", "Compétences"]
-        )
-        
-        input_data = st.text_area(f"Contenu de {input_type.lower()}", 
-            height=150,
-            placeholder=f"Saisissez ici votre {input_type.lower()} de formation..."
-        )
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class="scenario-card">
-            <h3>⏱️ Durée de formation</h3>
-        """, unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            duration_hours = st.number_input("Heures", min_value=0, max_value=40, value=3, step=1)
-        with col2:
-            duration_minutes = st.number_input("Minutes supplémentaires", min_value=0, max_value=59, value=30, step=5)
-        
-        total_duration_minutes = (duration_hours * 60) + duration_minutes
-        
-        st.markdown(f"""
-        <div style="margin-top: 10px; margin-bottom: 10px;">
-            <span style="background: {COLORS['primary']}; color: white; padding: 5px 10px; border-radius: 5px; font-size: 1rem;">
-                ⏱️ Durée totale: {duration_hours}h{duration_minutes if duration_minutes > 0 else ''} ({total_duration_minutes} minutes)
-            </span>
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        selected_columns = column_selector_interface()
-        
-        if st.button("✨ Générer le scénario de formation", use_container_width=True):
-            if input_data and selected_columns:
-                user_content = f"""
-                <div>
-                    <p><strong>Type d'entrée:</strong> {input_type}</p>
-                    <p><strong>Contenu:</strong> {input_data}</p>
-                    <p><strong>Durée:</strong> {duration_hours}h{duration_minutes if duration_minutes > 0 else ''} ({total_duration_minutes} minutes)</p>
-                    <p><strong>Colonnes du tableau:</strong> {', '.join(selected_columns)}</p>
-                </div>
-                """
-                
-                st.session_state.scenarisation_history.append({
-                    'role': 'user', 
-                    'content': user_content
-                })
-                
-                st.markdown(f"""
-                <div class="user-message">
-                    <strong>Votre demande:</strong><br>
-                    {user_content}
-                </div>
-                """, unsafe_allow_html=True)
-                
-                with st.status("🎯 Création de votre scénario de formation...", expanded=True) as status:
-                    input_type_lower = input_type.lower()
-                    
-                    if input_type_lower == 'competences':
-                        st.write("🔄 Reformulation des compétences selon l'approche par compétences...")
-                        reformulated_competencies = reformulate_competencies_apc(
-                            st.session_state.llm,
-                            st.session_state.vectorstore,
-                            input_data
-                        )
-                        input_data = reformulated_competencies
-                    
-                    st.write("📝 Génération du scénario pédagogique...")
-                    
-                    csv_structure = convert_columns_to_csv_structure(selected_columns)
-                    
-                    scenario = generate_structured_training_scenario(
-                        st.session_state.llm,
-                        st.session_state.vectorstore,
-                        input_data,
-                        input_type_lower,
-                        total_duration_minutes,
-                        custom_csv_structure=csv_structure
-                    )
-                    
-                    status.update(label="✅ Scénario terminé!", state="complete", expanded=False)
-                
-                st.markdown(f"""
-                <div class="assistant-message">
-                    <h3>📋 Votre Scénario de Formation</h3>
-                    <div class="info-box">
-                        Ce scénario a été généré en fonction de vos paramètres et colonnes sélectionnées.
-                    </div>
-                    {scenario}
-                </div>
-                """, unsafe_allow_html=True)
-                
-                st.session_state.scenarisation_history.append({
-                    'role': 'assistant', 
-                    'content': scenario
-                })
-            elif not input_data:
-                st.warning("⚠️ Veuillez saisir un contenu pour générer le scénario.")
-            elif not selected_columns:
-                st.warning("⚠️ Veuillez sélectionner au moins une colonne pour le tableau.")
-                
-    with right_col:
-        st.markdown("""
-        <div class="scenario-card">
-            <h3>💡 Guide de scénarisation</h3>
-            <p>Pour créer un scénario de formation efficace:</p>
-            <ol>
-                <li><strong>Choisissez un type d'entrée</strong></li>
-                <li><strong>Définissez le contenu</strong> avec détails</li>
-                <li><strong>Ajustez la durée</strong> selon vos contraintes</li>
-                <li><strong>Personnalisez les colonnes</strong> du tableau</li>
-                <li><strong>Générez votre scénario</strong></li>
-            </ol>
-        </div>
-        """, unsafe_allow_html=True)
+    """Page de scénarisation simplifiée"""
+    st.markdown("### 🎯 Scénarisation de Formation")
+    st.info("Fonctionnalité en cours d'implémentation avec Authlib...")
 
 # ==========================================
 # INTERFACE PRINCIPALE
@@ -967,7 +889,7 @@ with st.sidebar:
     if st.button("🚪 Se déconnecter", use_container_width=True):
         if user_id:
             save_user_rag_state(user_id)
-        logout_user()
+        clear_session()
         st.cache_data.clear()
         st.cache_resource.clear()
         st.rerun()
