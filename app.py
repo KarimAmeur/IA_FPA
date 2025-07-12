@@ -79,125 +79,827 @@ class MistralEmbeddings:
             st.error(f"Erreur embedding requête: {e}")
             return [0.0]*1024
 
-# Définition des couleurs
+# PALETTE EDSET OFFICIELLE - Selon votre charte graphique
 COLORS = {
-    "primary": "#1D5B68",
-    "secondary": "#E6525E", 
-    "light_blue": "#94B7BD",
-    "very_light_blue": "#DDE7E9",
-    "dark_gray": "#3F3F3F",
-    "light_gray": "#F5F5F6",
-    "background": "#1A1A1A",
-    "text": "#FFFFFF"
+    "primary": "#1D5B68",           # Bleu principal EDSET
+    "primary_dark": "#0f3d47",      # Bleu plus foncé
+    "secondary": "#E6525E",         # Rouge accent EDSET
+    "accent": "#94B7BD",            # Bleu ciel EDSET
+    "accent_light": "#DDE7E9",      # Bleu très clair EDSET
+    "background": "#ffffff",        # Fond blanc
+    "surface": "#ffffff",           # Surface blanche
+    "surface_secondary": "#f8fafc", # Surface gris très clair
+    "text_primary": "#3F3F3F",      # Gris foncé EDSET
+    "text_secondary": "#6b7280",    # Texte secondaire
+    "text_muted": "#9ca3af",        # Texte atténué
+    "border": "#DDE7E9",            # Bordures bleu clair EDSET
+    "border_light": "#f3f4f6",      # Bordures très claires
+    "shadow": "rgba(29, 91, 104, 0.05)" # Ombres bleu EDSET
 }
 
-# Configuration CSS personnalisée
+# Configuration CSS moderne avec VOS vrais SVG
 def local_css():
     st.markdown(f"""
     <style>
+        /* TYPOGRAPHIE EDSET OFFICIELLE */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&display=swap');
+        
+        /* Note: Omnes n'est pas disponible sur Google Fonts, on utilise Roboto comme fallback */
+        
+        /* RESET ET BASE */
+        * {{
+            box-sizing: border-box;
+        }}
+        
         .stApp {{
-            background-color: {COLORS["background"]};
-            color: {COLORS["text"]};
+            background: {COLORS["background"]};
+            color: {COLORS["text_primary"]};
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 400;
+            line-height: 1.6;
         }}
         
-        h1, h2, h3 {{
-            color: {COLORS["light_blue"]};
-            font-family: 'Helvetica Neue', sans-serif;
+        /* TYPOGRAPHIE SELON CHARTE EDSET */
+        h1, h2, h3, h4, h5, h6 {{
+            color: {COLORS["primary"]};
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500; /* Roboto Medium pour les titres selon charte */
+            line-height: 1.3;
+            letter-spacing: -0.025em;
         }}
         
-        .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
-            background-color: {COLORS["dark_gray"]};
-            color: {COLORS["text"]};
-            border: 1px solid {COLORS["light_blue"]};
+        h1 {{
+            font-size: 2.5rem;
+            font-weight: 700;
         }}
         
-        .stSelectbox>div>div>div {{
-            background-color: {COLORS["dark_gray"]};
-            color: {COLORS["text"]};
-            border-radius: 6px;
-            border: 1px solid {COLORS["light_blue"]};
-        }}
-        
-        .stButton>button {{
-            background-color: {COLORS["primary"]};
-            color: {COLORS["text"]};
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
+        h2 {{
+            font-size: 2rem;
             font-weight: 500;
-            transition: all 0.3s;
+        }}
+        
+        h3 {{
+            font-size: 1.5rem;
+            font-weight: 500;
+        }}
+        
+        p {{
+            color: {COLORS["text_primary"]};
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300; /* Roboto Light pour les paragraphes selon charte */
+        }}
+        
+        /* INPUTS MODERNES */
+        .stTextInput>div>div>input, 
+        .stTextArea>div>div>textarea,
+        .stSelectbox>div>div>div {{
+            background: {COLORS["surface"]};
+            color: {COLORS["text_primary"]};
+            border: 1px solid {COLORS["border"]};
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 0.95rem;
+            padding: 12px 16px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px {COLORS["shadow"]};
+        }}
+        
+        .stTextInput>div>div>input:focus, 
+        .stTextArea>div>div>textarea:focus {{
+            border-color: {COLORS["primary"]};
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 1px 3px {COLORS["shadow"]};
+            outline: none;
+        }}
+        
+        /* BOUTONS SELON CHARTE EDSET */
+        .stButton>button {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
+            letter-spacing: -0.025em;
         }}
         
         .stButton>button:hover {{
-            background-color: {COLORS["light_blue"]};
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(29, 91, 104, 0.35);
+            background: linear-gradient(135deg, {COLORS["accent"]} 0%, {COLORS["primary"]} 100%);
         }}
         
+        .stButton>button:active {{
+            transform: translateY(0);
+        }}
+        
+        /* BOUTONS SECONDAIRES EDSET */
+        .stButton>button[kind="secondary"] {{
+            background: {COLORS["surface"]};
+            color: {COLORS["primary"]};
+            border: 1px solid {COLORS["border"]};
+            box-shadow: 0 1px 3px {COLORS["shadow"]};
+        }}
+        
+        .stButton>button[kind="secondary"]:hover {{
+            background: {COLORS["accent_light"]};
+            border-color: {COLORS["primary"]};
+            color: {COLORS["primary"]};
+        }}
+        
+        /* SIDEBAR MODERNE */
         [data-testid="stSidebar"] {{
-            background-color: {COLORS["dark_gray"]};
-            color: {COLORS["text"]};
+            background: {COLORS["surface"]};
+            border-right: 1px solid {COLORS["border_light"]};
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.04);
         }}
         
-        .scenario-card, .user-message, .assistant-message {{
-            background-color: {COLORS["dark_gray"]};
-            color: {COLORS["text"]};
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 5px solid {COLORS["secondary"]};
-            margin-bottom: 10px;
+        [data-testid="stSidebar"] * {{
+            color: {COLORS["text_primary"]} !important;
         }}
         
+        [data-testid="stSidebar"] h1, 
+        [data-testid="stSidebar"] h2, 
+        [data-testid="stSidebar"] h3 {{
+            color: {COLORS["text_primary"]} !important;
+        }}
+        
+        /* VOS VRAIES IMAGES SVG DU DOSSIER PICTURES */
+        .icon-formation {{
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            vertical-align: middle;
+            margin-right: 8px;
+        }}
+        
+        /* UTILISATION DE VOS VRAIES IMAGES DEPUIS LE DOSSIER PICTURES */
+        .icon-formateur {{
+            background-image: url('./Pictures/formation-formateur-tableau.svg');
+        }}
+        
+        .icon-ampoule {{
+            background-image: url('./Pictures/ampoule.svg');
+        }}
+        
+        .icon-checklist {{
+            background-image: url('./Pictures/checklist.svg');
+        }}
+        
+        .icon-cloud {{
+            background-image: url('./Pictures/cloud-dossier-02.svg');
+        }}
+        
+        .icon-calendrier {{
+            background-image: url('./Pictures/calendrier.svg');
+        }}
+        
+        .icon-duree {{
+            background-image: url('./Pictures/duree-montre.svg');
+        }}
+        
+        .icon-engrenages {{
+            background-image: url('./Pictures/engrenages.svg');
+        }}
+        
+        .icon-rouages {{
+            background-image: url('./Pictures/formation-formateur-rouages.svg');
+        }}
+        
+        .icon-diplome {{
+            background-image: url('./Pictures/formation-formateur-diplome.svg');
+        }}
+        
+        .icon-ordinateur {{
+            background-image: url('./Pictures/informatique-ordinateur.svg');
+        }}
+        
+        .icon-business {{
+            background-image: url('./Pictures/commerce-business.svg');
+        }}
+        
+        .icon-bureautique {{
+            background-image: url('./Pictures/bureautique.svg');
+        }}
+        
+        .icon-gestion-rh {{
+            background-image: url('./Pictures/gestion-rh.svg');
+        }}
+        
+        .icon-design {{
+            background-image: url('./Pictures/design.svg');
+        }}
+        
+        .icon-dev-web {{
+            background-image: url('./Pictures/developpement-web.svg');
+        }}
+        
+        .icon-langues {{
+            background-image: url('./Pictures/langues-bulles-conversation-01.svg');
+        }}
+        
+        .icon-stethoscope {{
+            background-image: url('./Pictures/stethoscope.svg');
+        }}
+        
+        .icon-theatre {{
+            background-image: url('./Pictures/masques-theatre.svg');
+        }}
+        
+        .icon-presentiel {{
+            background-image: url('./Pictures/modalites-presentiel.svg');
+        }}
+        
+        .icon-distanciel {{
+            background-image: url('./Pictures/modalites-distanciel.svg');
+        }}
+        
+        .icon-hybride {{
+            background-image: url('./Pictures/modalite-hybride.svg');
+        }}
+        
+        .icon-progress {{
+            background-image: url('./Pictures/24-in-progress.svg');
+        }}
+        
+        .icon-press-play {{
+            background-image: url('./Pictures/27-press-play.svg');
+        }}
+        
+        .icon-construire {{
+            background-image: url('./Pictures/23-construire-sa-formation.svg');
+        }}
+        
+        .icon-cloud-big {{
+            background-image: url('./Pictures/18-cloud.svg');
+        }}
+        
+        .icon-avatar {{
+            background-image: url('./Pictures/avatar-defaut.svg');
+        }}
+        
+        .icon-prix {{
+            background-image: url('./Pictures/prix.svg');
+        }}
+        
+        .icon-financer {{
+            background-image: url('./Pictures/financer-formation.svg');
+        }}
+        
+        .icon-entreprise {{
+            background-image: url('./Pictures/entreprise-immeuble.svg');
+        }}
+        
+        .icon-profil {{
+            background-image: url('./Pictures/profil-particulier.svg');
+        }}
+        
+        .icon-vignettes {{
+            background-image: url('./Pictures/vignettes-photos.svg');
+        }}
+        
+        .icon-palette {{
+            background-image: url('./Pictures/palette-peinture.svg');
+        }}
+        
+        .icon-scotch {{
+            background-image: url('./Pictures/papier-scotch.svg');
+        }}
+        
+        .icon-cactus {{
+            background-image: url('./Pictures/cactus.svg');
+        }}
+        
+        .icon-calculatrice {{
+            background-image: url('./Pictures/comptabilite-calculatrice.svg');
+        }}
+        
+        .icon-tirelire {{
+            background-image: url('./Pictures/commerce-tirelire.svg');
+        }}
+        
+        .icon-contrat {{
+            background-image: url('./Pictures/commerce-contrat.svg');
+        }}
+        
+        .icon-server {{
+            background-image: url('./Pictures/reseaux-server.svg');
+        }}
+        
+        .icon-reseaux {{
+            background-image: url('./Pictures/reseaux.svg');
+        }}
+        
+        /* ICÔNES PLUS GRANDES POUR SECTIONS */
+        .section-icon {{
+            width: 40px;
+            height: 40px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            display: inline-block;
+            margin-right: 12px;
+            vertical-align: middle;
+        }}
+        
+        /* ANIMATIONS */
+        @keyframes spin {{
+            from {{ transform: rotate(0deg); }}
+            to {{ transform: rotate(360deg); }}
+        }}
+        
+        .loading-icon {{
+            animation: spin 1s linear infinite;
+        }}
+        
+        @keyframes pulse {{
+            0% {{ opacity: 1; }}
+            50% {{ opacity: 0.7; }}
+            100% {{ opacity: 1; }}
+        }}
+        
+        .pulse-icon {{
+            animation: pulse 2s ease-in-out infinite;
+        }}
+        
+        /* CARDS MODERNES */
+        .modern-card {{
+            background: {COLORS["surface"]};
+            border: 1px solid {COLORS["border_light"]};
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+        }}
+        
+        .modern-card:hover {{
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }}
+        
+        .user-message {{
+            background: linear-gradient(135deg, {COLORS["primary"]}08 0%, {COLORS["surface"]} 100%);
+            border: 1px solid {COLORS["accent"]}40;
+            border-left: 4px solid {COLORS["primary"]};
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin: 16px 0;
+            font-family: 'Roboto', sans-serif;
+            color: {COLORS["text_primary"]};
+            box-shadow: 0 2px 10px {COLORS["shadow"]};
+        }}
+        
+        .assistant-message {{
+            background: linear-gradient(135deg, {COLORS["secondary"]}08 0%, {COLORS["surface"]} 100%);
+            border: 1px solid {COLORS["secondary"]}20;
+            border-left: 4px solid {COLORS["secondary"]};
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin: 16px 0;
+            font-family: 'Roboto', sans-serif;
+            color: {COLORS["text_primary"]};
+            box-shadow: 0 2px 10px rgba(230, 82, 94, 0.05);
+        }}
+        
+        .scenario-card {{
+            background: {COLORS["surface"]};
+            border: 1px solid {COLORS["border_light"]};
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+        }}
+        
+        /* HERO BANNER AVEC COULEURS EDSET */
+        .hero-banner {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(29, 91, 104, 0.2);
+        }}
+        
+        .hero-banner::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(148, 183, 189, 0.2) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(221, 231, 233, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }}
+        
+        .hero-banner-formation {{
+            background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
+                        url('./Pictures/construire-sa-formation.jpg');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }}
+        
+        .hero-banner-ai {{
+            background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
+                        url('./Pictures/artificial-intelligence.png');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }}
+        
+        .hero-banner-learning {{
+            background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
+                        url('./Pictures/learning-cloud.png');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }}
+        
+        .hero-banner-press-play {{
+            background: linear-gradient(135deg, {COLORS["primary"]}dd 0%, {COLORS["primary_dark"]}dd 100%),
+                        url('./Pictures/press-play.jpg');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }}
+        
+        .hero-decoration {{
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background-image: url('./Pictures/ampoule.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.3;
+            z-index: 1;
+        }}
+        
+        .hero-decoration-construire {{
+            background-image: url('./Pictures/23-construire-sa-formation.svg');
+        }}
+        
+        .hero-decoration-cloud {{
+            background-image: url('./Pictures/18-cloud.svg');
+        }}
+        
+        .hero-decoration-play {{
+            background-image: url('./Pictures/27-press-play.svg');
+        }}
+        
+        .hero-banner h1 {{
+            color: white !important;
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 2;
+            letter-spacing: -0.03em;
+        }}
+        
+        .hero-banner p {{
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-size: 1.2rem;
+            font-weight: 400;
+            margin-bottom: 0;
+            position: relative;
+            z-index: 2;
+        }}
+        
+        /* SIGNATURE DISCRÈTE */
+        .creator-signature {{
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            color: {COLORS["text_muted"]};
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            z-index: 1000;
+            border: 1px solid {COLORS["border_light"]};
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }}
+        
+        /* USER INFO MODERNE */
+        .user-info {{
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 16px;
+            margin: 15px 0;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }}
+        
+        /* UPLOAD BOX MODERNE */
         .upload-box {{
-            background-color: {COLORS["dark_gray"]};
-            border: 2px dashed {COLORS["light_blue"]};
-            border-radius: 10px;
-            padding: 30px;
+            background: linear-gradient(135deg, {COLORS["surface"]} 0%, {COLORS["surface_secondary"]} 100%);
+            border: 2px dashed {COLORS["border"]};
+            border-radius: 16px;
+            padding: 40px 20px;
             text-align: center;
             margin: 20px 0;
+            transition: all 0.3s ease;
+            color: {COLORS["text_primary"]};
+            position: relative;
         }}
         
+        .upload-box::before {{
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            background-image: url('./Pictures/cloud-dossier.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.6;
+        }}
+        
+        .upload-box:hover {{
+            border-color: {COLORS["primary"]};
+            background: linear-gradient(135deg, {COLORS["primary"]}05 0%, {COLORS["surface"]} 100%);
+            color: {COLORS["primary"]};
+        }}
+        
+        .upload-box:hover::before {{
+            background-image: url('./Pictures/cloud-dossier-02.svg');
+        }}
+        
+        /* AUTH CONTAINER MODERNE */
         .auth-container {{
             max-width: 500px;
             margin: 50px auto;
             padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
+            background: {COLORS["surface"]};
+            border: 1px solid {COLORS["border_light"]};
+            border-radius: 24px;
             text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }}
+        
+        .auth-container h1 {{
+            color: {COLORS["primary"]} !important;
+            margin-bottom: 1rem;
+        }}
+        
+        .auth-container h2 {{
+            color: {COLORS["text_secondary"]} !important;
+        }}
+        
+        /* LOGO MODERNE AVEC COULEURS EDSET */
+        .modern-logo {{
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["accent"]} 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
+            font-weight: 700;
+            font-size: 1.4rem;
+            margin: 0 auto 15px auto;
+            box-shadow: 0 8px 32px rgba(29, 91, 104, 0.3);
+            font-family: 'Roboto', sans-serif;
+            letter-spacing: -0.05em;
+            position: relative;
         }}
         
-        .user-info {{
-            background-color: {COLORS["primary"]};
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            margin: 10px 0;
+        .modern-logo::before {{
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-image: url('./Pictures/formation-formateur-tableau.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            filter: brightness(0) invert(1);
         }}
         
-        .guide-section {{
-            background-color: {COLORS["dark_gray"]};
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 4px solid {COLORS["light_blue"]};
+        /* INFO BOX AVEC VOS VRAIES IMAGES */
+        .info-box {{
+            background: linear-gradient(135deg, {COLORS["accent"]}20 0%, {COLORS["surface"]} 100%);
+            border: 1px solid {COLORS["accent"]}40;
+            border-left: 4px solid {COLORS["accent"]};
+            color: {COLORS["text_primary"]};
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 300;
+            position: relative;
         }}
         
-        .column-selector {{
-            background-color: {COLORS["dark_gray"]};
-            padding: 10px;
+        .info-box::before {{
+            content: '';
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            background-image: url('./Pictures/ampoule.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.6;
+        }}
+        
+        /* LOADING ET PROGRESS AVEC VOS IMAGES */
+        .loading-icon {{
+            animation: spin 1s linear infinite;
+            background-image: url('./Pictures/24-in-progress.svg');
+            width: 32px;
+            height: 32px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }}
+        
+        .pulse-icon {{
+            animation: pulse 2s ease-in-out infinite;
+            background-image: url('./Pictures/ampoule.svg');
+            width: 24px;
+            height: 24px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }}
+        
+        /* BADGES AVEC COULEURS EDSET */
+        .badge {{
+            display: inline-block;
+            padding: 0.4em 0.8em;
+            font-size: 0.8rem;
+            font-weight: 500;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
             border-radius: 8px;
-            margin: 5px 0;
+            font-family: 'Roboto', sans-serif;
+        }}
+        
+        .badge-primary {{
+            color: white;
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
+            box-shadow: 0 2px 8px rgba(29, 91, 104, 0.2);
+        }}
+        
+        .badge-success {{
+            color: white;
+            background: linear-gradient(135deg, {COLORS["secondary"]} 0%, #c73e47 100%);
+            box-shadow: 0 2px 8px rgba(230, 82, 94, 0.2);
+        }}
+        
+        /* TABS AVEC COULEURS EDSET */
+        .stTabs [data-baseweb="tab-list"] {{
+            gap: 8px;
+            background: {COLORS["accent_light"]};
+            border-radius: 12px;
+            padding: 6px;
+            border: 1px solid {COLORS["border"]};
+        }}
+        
+        .stTabs [data-baseweb="tab"] {{
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            color: {COLORS["text_primary"]} !important;
+            background: transparent;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }}
+        
+        .stTabs [aria-selected="true"] {{
+            background: {COLORS["primary"]} !important;
+            color: white !important;
+            box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
+        }}
+        
+        /* SCROLLBAR AVEC COULEURS EDSET */
+        ::-webkit-scrollbar {{
+            width: 6px;
+        }}
+        
+        ::-webkit-scrollbar-track {{
+            background: {COLORS["accent_light"]};
+            border-radius: 3px;
+        }}
+        
+        ::-webkit-scrollbar-thumb {{
+            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["accent"]} 100%);
+            border-radius: 3px;
+        }}
+        
+        ::-webkit-scrollbar-thumb:hover {{
+            background: linear-gradient(135deg, {COLORS["primary_dark"]} 0%, {COLORS["primary"]} 100%);
+        }}
+        
+        /* RESPONSIVE MOBILE */
+        @media (max-width: 768px) {{
+            .hero-banner {{
+                padding: 2rem 1rem;
+                border-radius: 16px;
+            }}
+            
+            .hero-banner h1 {{
+                font-size: 2rem;
+            }}
+            
+            .hero-banner p {{
+                font-size: 1rem;
+            }}
+            
+            .modern-card, .user-message, .assistant-message, .scenario-card {{
+                padding: 16px;
+                border-radius: 12px;
+            }}
+            
+            .modern-logo {{
+                width: 60px;
+                height: 60px;
+                font-size: 1.2rem;
+            }}
+            
+            .creator-signature {{
+                bottom: 5px;
+                right: 5px;
+                font-size: 0.7rem;
+                padding: 3px 6px;
+            }}
+            
+            .section-icon {{
+                width: 32px;
+                height: 32px;
+            }}
+            
+            .icon-formation {{
+                width: 20px;
+                height: 20px;
+            }}
+        }}
+        
+        /* ANIMATIONS SUBTILES */
+        * {{
+            transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }}
+        
+        /* MASQUER LES ÉLÉMENTS STREAMLIT NON DÉSIRÉS */
+        #MainMenu {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+        .stDeployButton {{display: none;}}
+        header {{visibility: hidden;}}
+        
+        /* FIX POUR ÉVITER L'AFFICHAGE DU MESSAGE DE BASE */
+        .element-container:has(.stAlert) {{
+            display: none;
         }}
     </style>
     """, unsafe_allow_html=True)
 
 # Configuration de l'application Streamlit
 st.set_page_config(
-    page_title="Assistant FPA - Ingénierie de Formation",
-    page_icon="📘",
+    page_title="Assistant Formation - Ingénierie pédagogique",
+    page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
 )
 
+# Signature du créateur (discrète)
+st.markdown("""
+<div class="creator-signature">
+    Conçu par Karim Ameur
+</div>
+""", unsafe_allow_html=True)
+
+# Application du CSS moderne
 local_css()
 
 # ==========================================
@@ -208,7 +910,7 @@ def show_usage_guide():
     """Affiche le guide d'utilisation de l'assistant"""
     st.markdown("""
     <div class="guide-section">
-        <h2>📖 Guide d'utilisation de l'Assistant FPA</h2>
+        <h2><span class="section-icon icon-formateur"></span>Guide d'utilisation de l'Assistant FPA</h2>
         <p>Votre assistant intelligent pour l'ingénierie de formation professionnelle</p>
     </div>
     """, unsafe_allow_html=True)
@@ -349,8 +1051,8 @@ def get_default_scenario_columns():
 def column_selector_interface():
     """Interface pour sélectionner les colonnes du tableau de scénarisation"""
     st.markdown("""
-    <div class="scenario-card">
-        <h3>📋 Personnalisation du tableau de scénarisation</h3>
+    <div class="modern-card">
+        <h3><span class="section-icon icon-checklist"></span>Personnalisation du tableau de scénarisation</h3>
         <p>Sélectionnez les colonnes que vous souhaitez inclure dans votre tableau de scénarisation :</p>
     </div>
     """, unsafe_allow_html=True)
@@ -477,14 +1179,14 @@ def convert_columns_to_csv_structure(selected_columns):
     return f"{header}\n{example_line}"
 
 # ==========================================
-# GESTION DE L'UTILISATEUR (STREAMLIT CLOUD)
+# GESTION DE L'UTILISATEUR (STREAMLIT CLOUD) - CORRIGÉ
 # ==========================================
 
 def get_user_identifier():
-    """Récupère l'identifiant utilisateur de Streamlit Cloud"""
+    """Récupère l'identifiant utilisateur de Streamlit Cloud - VERSION CORRIGÉE"""
     try:
-        # Utilise l'API native de Streamlit Cloud pour l'utilisateur connecté
-        if hasattr(st, 'user') and st.user is not None:
+        # Vérification plus robuste pour Streamlit Cloud
+        if hasattr(st, 'user') and st.user is not None and hasattr(st.user, 'email'):
             return st.user.email
         else:
             return None
@@ -545,7 +1247,7 @@ def extract_database_if_needed():
     zip_path = "chromadb_formation.zip"
     
     if os.path.exists(db_path) and os.listdir(db_path):
-        st.success("✅ Base vectorielle déjà disponible")
+        st.success("✅ Base vectorielle disponible")
         return True
     
     if os.path.exists(zip_path):
@@ -569,7 +1271,7 @@ def database_upload_interface():
     
     st.markdown("""
     <div class="upload-box">
-        <h3>📤 Upload de votre base vectorielle</h3>
+        <h3 style="margin-top: 80px;">📤 Upload de votre base vectorielle</h3>
         <p>La base vectorielle ChromaDB est nécessaire pour le fonctionnement de l'assistant.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -700,7 +1402,7 @@ def initialize_system():
     if not extract_database_if_needed():
         return None, None, "database_missing"
     
-    with st.spinner("🚀 Initialisation de l'Assistant FPA..."):
+    with st.spinner("🚀 Initialisation de l'Assistant Formation..."):
         vectorstore = load_vector_store()
         
         if vectorstore == "needs_reupload":
@@ -716,42 +1418,49 @@ def initialize_system():
         return vectorstore, llm, "success"
 
 # ==========================================
-# VÉRIFICATION AUTH ET POINT D'ENTRÉE PRINCIPAL
+# VÉRIFICATION AUTH ET POINT D'ENTRÉE PRINCIPAL - CORRIGÉ
 # ==========================================
 
 # Vérification de l'authentification AVANT tout le reste
 if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
     st.markdown("""
     <div class="auth-container">
-        <h1>🎓 Assistant FPA</h1>
-        <h2>Ingénierie de Formation</h2>
-        <p style="font-size: 1.2rem; margin: 30px 0;">
-            Connectez-vous avec votre compte Google pour accéder à votre espace personnel de formation
+        <div class="modern-logo"></div>
+        <h1><span class="icon-formation icon-formateur"></span>Assistant Formation</h1>
+        <h2 style="font-style: italic; font-weight: 300; opacity: 0.8;">Ingénierie pédagogique</h2>
+        <p style="font-size: 1.1rem; margin: 30px 0; color: #6b7280;">
+            Cette application nécessite une authentification Google pour accéder à votre espace personnel de formation
         </p>
         
-        <div style="margin: 40px 0;">
-            <h3>✨ Fonctionnalités personnalisées :</h3>
-            <div style="text-align: left; display: inline-block; margin: 20px 0;">
-                <p>📚 • Base de connaissances commune en formation</p>
-                <p>🎯 • Scénarisation pédagogique intelligente</p>
-                <p>📄 • Votre propre RAG personnel</p>
-                <p>💾 • Sauvegarde automatique de vos documents</p>
+        <div style="margin: 40px 0; text-align: left;">
+            <h3 style="color: #2563eb;"><span class="icon-formation icon-ampoule"></span>Fonctionnalités personnalisées :</h3>
+            <div style="margin: 20px 0; color: #374151;">
+                <p><span class="icon-formation icon-formateur"></span>Base de connaissances commune en formation</p>
+                <p><span class="icon-formation icon-checklist"></span>Scénarisation pédagogique intelligente</p>
+                <p><span class="icon-formation icon-cloud"></span>Votre propre RAG personnel</p>
+                <p><span class="icon-formation icon-engrenages"></span>Sauvegarde automatique de vos documents</p>
                 <p>🔒 • Données privées et sécurisées</p>
             </div>
+        </div>
+        
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 12px; margin: 30px 0;">
+            <h4 style="color: #1f2937; margin-bottom: 15px;">🔐 Comment se connecter :</h4>
+            <ol style="color: #374151; text-align: left;">
+                <li>Cliquez sur le menu ☰ en haut à droite de la page</li>
+                <li>Sélectionnez "Se connecter" ou "Sign in"</li>
+                <li>Choisissez votre compte Google</li>
+                <li>Autorisez l'accès à l'application</li>
+            </ol>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔐 Se connecter avec Google", 
-                    type="primary", 
-                    use_container_width=True):
-            st.switch_page("login")
+    # Message d'information au lieu de bouton de redirection
+    st.info("ℹ️ **Pour vous connecter :** Utilisez le menu ☰ en haut à droite et sélectionnez 'Se connecter'")
     
     st.markdown("""
-    <div style="text-align: center; margin-top: 50px; color: #888;">
-        <p>🔒 <strong>Sécurité et confidentialité :</strong></p>
+    <div style="text-align: center; margin-top: 50px; color: #9ca3af;">
+        <p><strong>🔒 Sécurité et confidentialité :</strong></p>
         <p>• Vos données sont privées et sécurisées</p>
         <p>• Chaque utilisateur a son propre espace isolé</p>
         <p>• Aucune donnée partagée entre utilisateurs</p>
@@ -784,8 +1493,9 @@ if user_id and f'RAG_user_{user_id}' not in st.session_state:
 # Gestion des erreurs d'initialisation
 if st.session_state.initialization_status == "database_missing":
     st.markdown("""
-    <div class="banner">
-        <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
+    <div class="hero-banner hero-banner-formation">
+        <div class="hero-decoration"></div>
+        <h1><span class="icon-formation icon-formateur"></span>Assistant Formation</h1>
         <p>Configuration initiale requise</p>
     </div>
     """, unsafe_allow_html=True)
@@ -807,12 +1517,17 @@ elif st.session_state.initialization_status in ["vectorstore_error", "llm_error"
 def main_chat_page():
     """Page principale de chat avec l'assistant FPA"""
     
+    # Vérification sécurisée des attributs utilisateur
+    user_name = getattr(st.user, 'name', 'Utilisateur')
+    user_email = getattr(st.user, 'email', 'Non disponible')
+    
     st.markdown(f"""
-    <div class="banner">
-        <h1>🎓 Assistant FPA - Ingénierie de Formation</h1>
-        <p>Votre partenaire intelligent pour la conception et l'amélioration de vos formations professionnelles</p>
+    <div class="hero-banner hero-banner-ai">
+        <div class="hero-decoration"></div>
+        <h1><span class="icon-formation icon-ampoule"></span>Assistant Formation</h1>
+        <p>Votre partenaire intelligent pour la formation professionnelle</p>
         <div class="user-info">
-            👤 Connecté en tant que : {st.user.name} ({st.user.email})
+            <span class="icon-formation icon-diplome"></span>Connecté en tant que : {user_name} ({user_email})
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -826,14 +1541,14 @@ def main_chat_page():
             if message['role'] == 'user':
                 st.markdown(f"""
                 <div class="user-message">
-                    <strong>Vous:</strong><br>
+                    <strong><span class="icon-formation icon-diplome"></span>Vous :</strong><br>
                     {message['content']}
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="assistant-message">
-                    <strong>Assistant FPA:</strong><br>
+                    <strong><span class="icon-formation icon-ampoule"></span>Assistant FPA :</strong><br>
                     {message['content']}
                 </div>
                 """, unsafe_allow_html=True)
@@ -847,7 +1562,7 @@ def main_chat_page():
 
             st.markdown(f"""
             <div class="user-message">
-                <strong>Vous:</strong><br>
+                <strong><span class="icon-formation icon-diplome"></span>Vous :</strong><br>
                 {prompt}
             </div>
             """, unsafe_allow_html=True)
@@ -871,7 +1586,7 @@ def main_chat_page():
                 
             st.markdown(f"""
             <div class="assistant-message">
-                <strong>Assistant FPA:</strong><br>
+                <strong><span class="icon-formation icon-ampoule"></span>Assistant FPA :</strong><br>
                 {response}
             </div>
             """, unsafe_allow_html=True)
@@ -884,9 +1599,9 @@ def main_chat_page():
             with st.expander("📚 Documents sources"):
                 for i, doc in enumerate(retrieved_docs, 1):
                     st.markdown(f"""
-                    <div class="scenario-card">
-                        <h4>Document {i}</h4>
-                        <p><span class="badge badge-blue">Score: {doc['score']:.2f}</span></p>
+                    <div class="modern-card">
+                        <h4><span class="icon-formation icon-cloud"></span>Document {i}</h4>
+                        <p><span class="badge badge-primary">Score: {doc['score']:.2f}</span></p>
                         <p><strong>Titre:</strong> {doc['title']}</p>
                         <hr>
                         {doc['content']}
@@ -897,8 +1612,9 @@ def scenarisation_page():
     """Page de scénarisation de formation avec colonnes personnalisables"""
     
     st.markdown("""
-    <div class="banner">
-        <h1>🎯 Scénarisation de Formation</h1>
+    <div class="hero-banner hero-banner-formation">
+        <div class="hero-decoration"></div>
+        <h1><span class="icon-formation icon-checklist"></span>Scénarisation</h1>
         <p>Créez des scénarios pédagogiques adaptés à vos objectifs</p>
     </div>
     """, unsafe_allow_html=True)
@@ -907,8 +1623,8 @@ def scenarisation_page():
     
     with left_col:
         st.markdown("""
-        <div class="scenario-card">
-            <h3>📋 Paramètres du scénario</h3>
+        <div class="modern-card">
+            <h3><span class="section-icon icon-engrenages"></span>Paramètres du scénario</h3>
         """, unsafe_allow_html=True)
         
         input_type = st.selectbox(
@@ -924,8 +1640,8 @@ def scenarisation_page():
         st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("""
-        <div class="scenario-card">
-            <h3>⏱️ Durée de formation</h3>
+        <div class="modern-card">
+            <h3><span class="section-icon icon-duree"></span>Durée de formation</h3>
         """, unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
@@ -938,8 +1654,8 @@ def scenarisation_page():
         
         st.markdown(f"""
         <div style="margin-top: 10px; margin-bottom: 10px;">
-            <span style="background: {COLORS['primary']}; color: white; padding: 5px 10px; border-radius: 5px; font-size: 1rem;">
-                ⏱️ Durée totale: {duration_hours}h{duration_minutes if duration_minutes > 0 else ''} ({total_duration_minutes} minutes)
+            <span class="badge badge-primary" style="padding: 8px 16px; font-size: 1rem;">
+                <span class="icon-formation icon-duree"></span>Durée totale: {duration_hours}h{duration_minutes if duration_minutes > 0 else ''} ({total_duration_minutes} minutes)
             </span>
         </div>
         </div>
@@ -966,7 +1682,7 @@ def scenarisation_page():
                 
                 st.markdown(f"""
                 <div class="user-message">
-                    <strong>Votre demande:</strong><br>
+                    <strong><span class="icon-formation icon-diplome"></span>Votre demande :</strong><br>
                     {user_content}
                 </div>
                 """, unsafe_allow_html=True)
@@ -1002,7 +1718,7 @@ def scenarisation_page():
                 
                 st.markdown(f"""
                 <div class="assistant-message">
-                    <h3>📋 Votre Scénario de Formation</h3>
+                    <h3><span class="icon-formation icon-checklist"></span>Votre Scénario de Formation</h3>
                     <div class="info-box">
                         Ce scénario a été généré en fonction de vos paramètres et colonnes sélectionnées.
                     </div>
@@ -1021,8 +1737,8 @@ def scenarisation_page():
                 
     with right_col:
         st.markdown("""
-        <div class="scenario-card">
-            <h3>💡 Guide de scénarisation</h3>
+        <div class="modern-card">
+            <h3><span class="section-icon icon-ampoule"></span>Guide de scénarisation</h3>
             <p>Pour créer un scénario de formation efficace:</p>
             <ol>
                 <li><strong>Choisissez un type d'entrée</strong></li>
@@ -1033,31 +1749,57 @@ def scenarisation_page():
             </ol>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Modalités de formation avec VOS vraies icônes
+        st.markdown("""
+        <div class="modern-card">
+            <h3><span class="section-icon icon-rouages"></span>Modalités disponibles</h3>
+            <p><span class="icon-formation icon-presentiel"></span><strong>Présentiel</strong> : Formation en face à face</p>
+            <p><span class="icon-formation icon-distanciel"></span><strong>Distanciel</strong> : Formation à distance</p>
+            <p><span class="icon-formation icon-hybride"></span><strong>Hybride</strong> : Mix présentiel/distanciel</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Outils et ressources avec VOS vraies icônes
+        st.markdown("""
+        <div class="modern-card">
+            <h3><span class="section-icon icon-press-play"></span>Outils disponibles</h3>
+            <p><span class="icon-formation icon-calendrier"></span><strong>Planning</strong> : Gestion du temps</p>
+            <p><span class="icon-formation icon-prix"></span><strong>Budget</strong> : Coût formation</p>
+            <p><span class="icon-formation icon-financer"></span><strong>Financement</strong> : Aide au financement</p>
+            <p><span class="icon-formation icon-vignettes"></span><strong>Ressources</strong> : Supports visuels</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ==========================================
-# SIDEBAR AVEC OUTILS ET DÉCONNEXION
+# SIDEBAR AVEC OUTILS ET DÉCONNEXION - CORRIGÉ
 # ==========================================
 
 with st.sidebar:
     st.markdown("""
     <div style="text-align: center; margin-bottom: 30px;">
-        <div class="logo" style="margin: 0 auto;">FPA</div>
-        <h3>Assistant Formation</h3>
+        <div class="modern-logo"></div>
+        <h3 style="color: #2563eb; margin: 0; font-weight: 500;"><span class="icon-formation icon-formateur"></span>Assistant Formation</h3>
+        <p style="color: #6b7280; font-size: 0.9rem; margin: 5px 0 0 0; font-style: italic;">Ingénierie pédagogique</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Informations utilisateur et déconnexion
+    # Informations utilisateur et déconnexion - VERSION CORRIGÉE
     st.markdown("---")
-    st.markdown(f"**👤 Connecté :** {st.user.name}")
-    st.markdown(f"**📧 Email :** {st.user.email}")
+    if hasattr(st.user, 'name') and st.user.name:
+        st.markdown(f"**<span class='icon-formation icon-diplome'></span>Connecté :** {st.user.name}")
+    if hasattr(st.user, 'email') and st.user.email:
+        st.markdown(f"**📧 Email :** {st.user.email}")
     
-    if st.button("🚪 Se déconnecter", use_container_width=True):
-        if user_id:
-            save_user_rag_state(user_id)
-        # Correction pour Streamlit Cloud
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.rerun()
+    # Message d'information pour la déconnexion au lieu du bouton problématique
+    st.markdown("""
+    <div style="background: #f3f4f6; padding: 10px; border-radius: 8px; margin: 10px 0;">
+        <p style="font-size: 0.9rem; margin: 0; color: #374151;">
+            <strong>🚪 Pour vous déconnecter :</strong><br>
+            Utilisez le menu ☰ → Se déconnecter
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("---")
     
@@ -1075,8 +1817,8 @@ with st.sidebar:
         with st.spinner("📝 Génération d'un exemple de plan..."):
             exemple_plan = generate_example_training_plan(st.session_state.llm)
             st.markdown(f"""
-            <div class="scenario-card">
-                <h2>📝 Exemple de Plan de Formation</h2>
+            <div class="modern-card">
+                <h2><span class="section-icon icon-checklist"></span>Exemple de Plan de Formation</h2>
                 <div class="info-box">
                     Ce plan peut servir de modèle pour vos propres formations.
                 </div>
@@ -1088,20 +1830,51 @@ with st.sidebar:
         with st.spinner("🔍 Génération de conseils..."):
             aide_ingenierie = generate_pedagogical_engineering_advice(st.session_state.llm)
             st.markdown(f"""
-            <div class="scenario-card">
-                <h2>🔍 Conseils d'Ingénierie Pédagogique</h2>
+            <div class="modern-card">
+                <h2><span class="section-icon icon-ampoule"></span>Conseils d'Ingénierie Pédagogique</h2>
                 <div class="info-box">
                     Conseils pour améliorer vos méthodes d'ingénierie pédagogique.
                 </div>
                 {aide_ingenierie}
             </div>
             """, unsafe_allow_html=True)
+    
+    # Section domaines de formation avec VOS vraies icônes
+    st.markdown("### 📚 Domaines de formation")
+    st.markdown("""
+    <div style="margin: 10px 0;">
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-ordinateur"></span>Informatique</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-business"></span>Commerce</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-bureautique"></span>Bureautique</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-gestion-rh"></span>Gestion RH</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-design"></span>Design</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-dev-web"></span>Développement web</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-langues"></span>Langues</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-stethoscope"></span>Santé</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-theatre"></span>Arts & Culture</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-calculatrice"></span>Comptabilité</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Section modalités avec VOS vraies icônes
+    st.markdown("### 🎯 Modalités")
+    st.markdown("""
+    <div style="margin: 10px 0;">
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-presentiel"></span>Présentiel</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-distanciel"></span>Distanciel</p>
+        <p style="font-size: 0.9rem; margin: 5px 0;"><span class="icon-formation icon-hybride"></span>Hybride</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # ONGLETS DE NAVIGATION PRINCIPAL
 # ==========================================
 
-tab1, tab2, tab3 = st.tabs(["💬 Assistant FPA", "🎯 Scénarisation", f"📚 Mon RAG Personnel"])
+tab1, tab2, tab3 = st.tabs([
+    "💬 Assistant", 
+    "🎯 Scénarisation", 
+    f"📚 Mon RAG Personnel"
+])
 
 with tab1:
     main_chat_page()
@@ -1111,6 +1884,14 @@ with tab2:
 
 with tab3:
     if user_id:
+        st.markdown("""
+        <div class="hero-banner">
+            <div class="hero-decoration"></div>
+            <h1><span class="icon-formation icon-cloud"></span>Mon RAG Personnel</h1>
+            <p>Créez votre propre base de connaissances avec vos documents</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.session_state.RAG_user = st.session_state.get(f'RAG_user_{user_id}')
         user_rag_page()
         st.session_state[f'RAG_user_{user_id}'] = st.session_state.RAG_user
