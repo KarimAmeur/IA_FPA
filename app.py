@@ -1433,8 +1433,31 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🔐 Se connecter avec Google", type="primary", use_container_width=True):
-            st.rerun()
+        # URL d'authentification Google avec vos vraies credentials
+        google_auth_url = f"https://accounts.google.com/o/oauth2/auth?client_id=61896238780-jmh0pu5kqkc3tmptuqqshtj114oldvam.apps.googleusercontent.com&redirect_uri=https://p5gywxum4zyvyhauvk2c5q.streamlit.app/oauth2callback&scope=openid%20email%20profile&response_type=code&access_type=offline&prompt=select_account"
+        
+        st.markdown(f"""
+        <div style="text-align: center;">
+            <a href="{google_auth_url}" target="_self" style="text-decoration: none;">
+                <button style="
+                    background: linear-gradient(135deg, #1D5B68 0%, #0f3d47 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 15px 30px;
+                    font-family: 'Roboto', sans-serif;
+                    font-weight: 500;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    width: 100%;
+                    box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
+                    transition: all 0.2s ease;
+                ">
+                    🔐 Se connecter avec Google
+                </button>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.stop()
 
