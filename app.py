@@ -1,23 +1,4 @@
-/* BOUTONS SELON CHARTE EDSET */
-        .stButton>button {{
-            background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
-            color: white !important;  /* TEXTE EN BLANC - MODIFIÉ ICI */
-            border: none;
-            border-radius: 12px;
-            padding: 12px 24px;
-            font-family: 'Roboto', sans-serif;
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 14px rgba(29, 91, 104, 0.25);
-            letter-spacing: -0.025em;
-        }}
-        
-        .stButton>button:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(29, 91, 104, 0.35);
-            background: linear-gradient(135deg, {COLORS["accent"]} 0%, {COLORS["primary"]} 100%);
-            color: white !important;  /* TEXTE EN BLANC AU HOVER# PATCH POUR STREAMLIT CLOUD - À placer en tout début de app.py
+# PATCH POUR STREAMLIT CLOUD - À placer en tout début de app.py
 try:
     __import__('pysqlite3')
     import sys
@@ -207,11 +188,6 @@ def local_css():
             letter-spacing: -0.025em;
         }}
         
-        /* FORCE LE TEXTE EN BLANC POUR TOUS LES BOUTONS */
-        .stButton>button, .stButton>button span, .stButton>button p {{
-            color: white !important;
-        }}
-        
         .stButton>button:hover {{
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(29, 91, 104, 0.35);
@@ -219,19 +195,9 @@ def local_css():
             color: white !important;  /* TEXTE EN BLANC AU HOVER AUSSI */
         }}
         
-        /* FORCE LE TEXTE EN BLANC AU HOVER */
-        .stButton>button:hover, .stButton>button:hover span, .stButton>button:hover p {{
-            color: white !important;
-        }}
-        
         .stButton>button:active {{
             transform: translateY(0);
             color: white !important;  /* TEXTE EN BLANC QUAND CLIQUÉ */
-        }}
-        
-        /* FORCE LE TEXTE EN BLANC QUAND ACTIF */
-        .stButton>button:active, .stButton>button:active span, .stButton>button:active p {{
-            color: white !important;
         }}
         
         /* BOUTONS SECONDAIRES EDSET */
@@ -667,21 +633,6 @@ def local_css():
             z-index: 1000;
             border: 1px solid {COLORS["border_light"]};
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }}
-        
-        /* FORCE ABSOLUE POUR LE TEXTE BLANC DES BOUTONS */
-        .st-emotion-cache-3jjymv p, .st-emotion-cache-3jjymv ol, .st-emotion-cache-3jjymv ul, .st-emotion-cache-3jjymv dl, .st-emotion-cache-3jjymv li {{
-            color: white !important;
-        }}
-        
-        /* AUTRES SÉLECTEURS STREAMLIT POUR BOUTONS */
-        .stButton .st-emotion-cache-3jjymv {{
-            color: white !important;
-        }}
-        
-        /* FORCE POUR TOUS LES ÉLÉMENTS DANS LES BOUTONS */
-        .stButton * {{
-            color: white !important;
         }}
         
         /* MASQUER LES ÉLÉMENTS STREAMLIT NON DÉSIRÉS */
