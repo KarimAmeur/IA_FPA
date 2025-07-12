@@ -13,6 +13,7 @@ import shutil
 from pathlib import Path
 from typing import List
 import requests  # Ajouté pour OAuth Google
+import urllib.parse  # Ajouté pour OAuth Google
 
 # CORRECTION: Import corrigé pour Chroma (version compatible)
 try:
@@ -1192,7 +1193,6 @@ def get_user_identifier():
         else:
             return "user@gmail.com"  # Fallback
     except Exception as e:
-        st.error(f"Erreur lors de la récupération de l'utilisateur: {e}")
         return "user@gmail.com"
 
 def save_user_rag_state(user_id: str):
@@ -1422,21 +1422,17 @@ def initialize_system():
 # VÉRIFICATION AUTH ET POINT D'ENTRÉE PRINCIPAL - CORRIGÉ
 # ==========================================
 
-# Configuration OAuth Google depuis les secrets
+# Configuration OAuth Google pour authentification manuelle
 try:
-    GOOGLE_CLIENT_ID = st.secrets["auth"]["client_id"]
-    GOOGLE_CLIENT_SECRET = st.secrets["auth"]["client_secret"]
-    REDIRECT_URI = st.secrets["auth"]["redirect_uri"]
+    GOOGLE_CLIENT_ID = st.secrets["GOOGLE_CLIENT_ID"]
+    GOOGLE_CLIENT_SECRET = st.secrets["GOOGLE_CLIENT_SECRET"]
+    GOOGLE_REDIRECT_URI = st.secrets["GOOGLE_REDIRECT_URI"]
 except KeyError:
     st.error("❌ Configuration OAuth manquante dans les secrets")
     st.stop()
 
 def handle_oauth_callback():
     """Traite le retour de Google OAuth"""
-    import urllib.parse
-    import requests
-    
-    # Récupérer les paramètres d'URL
     query_params = st.experimental_get_query_params()
     
     if 'code' in query_params:
@@ -1449,11 +1445,10 @@ def handle_oauth_callback():
             'client_secret': GOOGLE_CLIENT_SECRET,
             'code': code,
             'grant_type': 'authorization_code',
-            'redirect_uri': REDIRECT_URI
+            'redirect_uri': GOOGLE_REDIRECT_URI
         }
         
         try:
-            # Demander le token
             response = requests.post(token_url, data=data)
             token_data = response.json()
             
@@ -1478,17 +1473,16 @@ def handle_oauth_callback():
                 
                 # Nettoyer l'URL
                 st.experimental_set_query_params()
-                st.success("✅ Connexion Google réussie!")
                 st.rerun()
                 
         except Exception as e:
             st.error(f"❌ Erreur d'authentification: {e}")
 
-# Traiter le callback si présent
+# Traiter le callback OAuth
 if 'code' in st.experimental_get_query_params():
     handle_oauth_callback()
 
-# Vérifier si authentifié
+# Vérification de l'authentification manuelle
 if not st.session_state.get('google_authenticated', False):
     st.markdown("""
     <div class="auth-container">
@@ -1500,8 +1494,17 @@ if not st.session_state.get('google_authenticated', False):
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # URL d'authentification Google
-        auth_url = f"https://accounts.google.com/o/oauth2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=openid%20email%20profile&response_type=code&access_type=offline&prompt=select_account"
+        # URL d'authentification Google manuelle
+        import urllib.parse
+        params = {
+            'client_id': GOOGLE_CLIENT_ID,
+            'redirect_uri': GOOGLE_REDIRECT_URI,
+            'scope': 'openid email profile',
+            'response_type': 'code',
+            'access_type': 'offline',
+            'prompt': 'select_account'
+        }
+        auth_url = f"https://accounts.google.com/o/oauth2/auth?{urllib.parse.urlencode(params)}"
         
         st.markdown(f"""
         <div style="text-align: center;">
@@ -1860,7 +1863,7 @@ with st.sidebar:
         st.markdown(f"**📧 Email :** {st.user.email}")
     
     if st.button("🚪 Se déconnecter", use_container_width=True):
-        # Déconnexion Google
+        # Déconnexion Google manuelle
         st.session_state['google_authenticated'] = False
         if 'user_data' in st.session_state:
             del st.session_state['user_data']
