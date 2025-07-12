@@ -176,7 +176,7 @@ def local_css():
         /* BOUTONS SELON CHARTE EDSET */
         .stButton>button {{
             background: linear-gradient(135deg, {COLORS["primary"]} 0%, {COLORS["primary_dark"]} 100%);
-            color: white;
+            color: white !important;  /* TEXTE EN BLANC - MODIFIÉ ICI */
             border: none;
             border-radius: 12px;
             padding: 12px 24px;
@@ -192,10 +192,12 @@ def local_css():
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(29, 91, 104, 0.35);
             background: linear-gradient(135deg, {COLORS["accent"]} 0%, {COLORS["primary"]} 100%);
+            color: white !important;  /* TEXTE EN BLANC AU HOVER AUSSI */
         }}
         
         .stButton>button:active {{
             transform: translateY(0);
+            color: white !important;  /* TEXTE EN BLANC QUAND CLIQUÉ */
         }}
         
         /* BOUTONS SECONDAIRES EDSET */
