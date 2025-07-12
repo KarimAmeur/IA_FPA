@@ -1428,73 +1428,23 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
         <div class="modern-logo"></div>
         <h1><span class="icon-formation icon-formateur"></span>Assistant Formation</h1>
         <h2 style="font-style: italic; font-weight: 300; opacity: 0.8;">Ingénierie pédagogique</h2>
-        <p style="font-size: 1.1rem; margin: 30px 0; color: #6b7280;">
-            Cette application nécessite une authentification Google pour accéder à votre espace personnel de formation
-        </p>
-        
-        <div style="margin: 40px 0; text-align: left;">
-            <h3 style="color: #2563eb;"><span class="icon-formation icon-ampoule"></span>Fonctionnalités personnalisées :</h3>
-            <div style="margin: 20px 0; color: #374151;">
-                <p><span class="icon-formation icon-formateur"></span>Base de connaissances commune en formation</p>
-                <p><span class="icon-formation icon-checklist"></span>Scénarisation pédagogique intelligente</p>
-                <p><span class="icon-formation icon-cloud"></span>Votre propre RAG personnel</p>
-                <p><span class="icon-formation icon-engrenages"></span>Sauvegarde automatique de vos documents</p>
-                <p>🔒 • Données privées et sécurisées</p>
-            </div>
-        </div>
-        
-        <!-- Instructions visuelles pour la connexion -->
-        <div style="background: linear-gradient(135deg, #1D5B68 0%, #0f3d47 100%); color: white; padding: 25px; border-radius: 16px; margin: 30px 0; text-align: center; position: relative;">
-            <div style="position: absolute; top: 15px; right: 20px; font-size: 2rem;">☰</div>
-            <h3 style="color: white; margin-bottom: 20px;">🔐 Instructions de connexion</h3>
-            <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; margin: 15px 0;">
-                <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">
-                    1️⃣ Cliquez sur le menu <strong>☰</strong> en haut à droite<br>
-                    2️⃣ Sélectionnez <strong>"Sign in"</strong> ou <strong>"Se connecter"</strong><br>
-                    3️⃣ Connectez-vous avec votre compte Google<br>
-                    4️⃣ Autorisez l'accès à l'application
-                </p>
-            </div>
-        </div>
-        
-        <!-- Fallback si l'auth n'est pas configurée -->
-        <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 20px; border-radius: 12px; margin: 20px 0;">
-            <h4 style="color: #92400e; margin-bottom: 10px;">⚠️ Si vous ne voyez pas d'option de connexion :</h4>
-            <p style="color: #92400e; margin: 0;">
-                L'authentification doit être activée dans les paramètres de l'application Streamlit Cloud. 
-                Contactez l'administrateur si nécessaire.
-            </p>
-        </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Instructions supplémentaires avec animation
-    st.markdown("""
-    <div style="text-align: center; margin: 30px 0;">
-        <div style="background: #e0f2fe; border-left: 4px solid #0288d1; padding: 15px; border-radius: 8px; display: inline-block; max-width: 600px;">
-            <p style="margin: 0; color: #01579b; font-weight: 500;">
-                📍 <strong>Astuce :</strong> Le bouton de menu <strong>☰</strong> se trouve en haut à droite de cette page. 
-                Si vous ne le voyez pas, actualisez la page ou vérifiez que l'authentification est activée.
-            </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Bouton d'actualisation en cas de problème
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🔄 Actualiser la page", type="primary", use_container_width=True):
+        # Utilisation de l'authentification native Streamlit Cloud
+        st.markdown("""
+        <div style="text-align: center; margin: 20px 0;">
+            <p>Cette application nécessite une authentification.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("🔐 Se connecter avec Google", type="primary", use_container_width=True):
+            # Force la reconnexion en vidant le cache
+            st.cache_data.clear()
+            st.cache_resource.clear()
             st.rerun()
-    
-    st.markdown("""
-    <div style="text-align: center; margin-top: 50px; color: #9ca3af;">
-        <p><strong>🔒 Sécurité et confidentialité :</strong></p>
-        <p>• Vos données sont privées et sécurisées</p>
-        <p>• Chaque utilisateur a son propre espace isolé</p>
-        <p>• Aucune donnée partagée entre utilisateurs</p>
-        <p>• Authentification déléguée à Google (OAuth 2.0)</p>
-    </div>
-    """, unsafe_allow_html=True)
     
     st.stop()
 
