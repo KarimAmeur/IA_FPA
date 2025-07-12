@@ -1443,20 +1443,48 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
             </div>
         </div>
         
-        <div style="background: #f3f4f6; padding: 20px; border-radius: 12px; margin: 30px 0;">
-            <h4 style="color: #1f2937; margin-bottom: 15px;">🔐 Comment se connecter :</h4>
-            <ol style="color: #374151; text-align: left;">
-                <li>Cliquez sur le menu ☰ en haut à droite de la page</li>
-                <li>Sélectionnez "Se connecter" ou "Sign in"</li>
-                <li>Choisissez votre compte Google</li>
-                <li>Autorisez l'accès à l'application</li>
-            </ol>
+        <!-- Instructions visuelles pour la connexion -->
+        <div style="background: linear-gradient(135deg, #1D5B68 0%, #0f3d47 100%); color: white; padding: 25px; border-radius: 16px; margin: 30px 0; text-align: center; position: relative;">
+            <div style="position: absolute; top: 15px; right: 20px; font-size: 2rem;">☰</div>
+            <h3 style="color: white; margin-bottom: 20px;">🔐 Instructions de connexion</h3>
+            <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; margin: 15px 0;">
+                <p style="margin: 0; font-size: 1.1rem; font-weight: 500;">
+                    1️⃣ Cliquez sur le menu <strong>☰</strong> en haut à droite<br>
+                    2️⃣ Sélectionnez <strong>"Sign in"</strong> ou <strong>"Se connecter"</strong><br>
+                    3️⃣ Connectez-vous avec votre compte Google<br>
+                    4️⃣ Autorisez l'accès à l'application
+                </p>
+            </div>
+        </div>
+        
+        <!-- Fallback si l'auth n'est pas configurée -->
+        <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 20px; border-radius: 12px; margin: 20px 0;">
+            <h4 style="color: #92400e; margin-bottom: 10px;">⚠️ Si vous ne voyez pas d'option de connexion :</h4>
+            <p style="color: #92400e; margin: 0;">
+                L'authentification doit être activée dans les paramètres de l'application Streamlit Cloud. 
+                Contactez l'administrateur si nécessaire.
+            </p>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Message d'information au lieu de bouton de redirection
-    st.info("ℹ️ **Pour vous connecter :** Utilisez le menu ☰ en haut à droite et sélectionnez 'Se connecter'")
+    # Instructions supplémentaires avec animation
+    st.markdown("""
+    <div style="text-align: center; margin: 30px 0;">
+        <div style="background: #e0f2fe; border-left: 4px solid #0288d1; padding: 15px; border-radius: 8px; display: inline-block; max-width: 600px;">
+            <p style="margin: 0; color: #01579b; font-weight: 500;">
+                📍 <strong>Astuce :</strong> Le bouton de menu <strong>☰</strong> se trouve en haut à droite de cette page. 
+                Si vous ne le voyez pas, actualisez la page ou vérifiez que l'authentification est activée.
+            </p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Bouton d'actualisation en cas de problème
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔄 Actualiser la page", type="primary", use_container_width=True):
+            st.rerun()
     
     st.markdown("""
     <div style="text-align: center; margin-top: 50px; color: #9ca3af;">
