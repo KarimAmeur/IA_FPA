@@ -1428,11 +1428,13 @@ if not hasattr(st, 'user') or st.user is None or not st.user.is_logged_in:
         <div class="modern-logo"></div>
         <h1><span class="icon-formation icon-formateur"></span>Assistant Formation</h1>
         <h2 style="font-style: italic; font-weight: 300; opacity: 0.8;">Ingénierie pédagogique</h2>
-        <p style="text-align: center; margin: 30px 0; color: #6b7280;">
-            Connectez-vous avec votre compte Google pour accéder à l'application
-        </p>
     </div>
     """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔐 Se connecter avec Google", type="primary", use_container_width=True):
+            st.rerun()
     
     st.stop()
 
